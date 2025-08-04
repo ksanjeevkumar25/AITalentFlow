@@ -142,20 +142,14 @@ app.get('/', (req, res) => {
     res.send(`
 <h2>Quantify: Skill Evaluation API</h2>
 <ul style="line-height:1.7;font-size:16px;">
-  <li><b>POST /evaluate</b> — Register & get questions<br>
-    <code>{ email, skills, techStack, skillLevel }</code>
+  <li><b>POST /login</b> — Login user<br>
+    <code>{ email, password }</code>
   </li>
-  <li><b>POST /save-score</b> — Save score<br>
-    <code>{ score, candidateName, skill }</code>
+  <li><b>POST /register-info</b> — Get registration info for user<br>
+    <code>{ email }</code>
   </li>
-  <li><b>GET /questions</b> — Fetch questions<br>
-    <code>?skill=java&skillLevel=low</code>
-  </li>
-  <li><b>POST /questions/fetchQuestions</b> — Fetch questions<br>
-    <code>{ skill, skillLevel }</code>
-  </li>
-  <li><b>POST /questions/submit</b> — Submit answers<br>
-    <code>{ email, answers, skill, skillLevel, candidateName }</code>
+  <li><b>POST /update-employee-skill</b> — Update employee skill after evaluation<br>
+    <code>{ candidateId, skill, score, remarks }</code>
   </li>
 </ul>
 <div style="color:#888;font-size:13px;margin-top:1em;">All POST requests require <b>Content-Type: application/json</b>.<br>See docs or frontend for full payload examples.</div>
