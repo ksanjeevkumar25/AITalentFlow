@@ -1,7 +1,7 @@
 // src/apiConfig.ts
 // Centralized config for external evaluation/question API
 
-export const EVAL_API_URL = process.env.REACT_APP_EVAL_API_URL || 'https://localhost:58654';
+export const EVAL_API_URL = process.env.Net_APP_EVAL_API_URL || 'https://localhost:58654';
 
 
 // Start interview session
