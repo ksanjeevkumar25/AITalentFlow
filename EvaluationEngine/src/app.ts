@@ -74,14 +74,23 @@ app.post('/register-info', async (req, res) => {
         const skillsResult = await pool.request()
             .input('employeeId', sql.Int, employee.EmployeeID)
             .query(`
-                SELECT es.EmployeeSkillID, es.EmployeeRatedSkillLevel, es.YearsOfExperience, s.SkillName, s.SkillDescription
+                SELECT es.EmployeeSkillID, es.EmployeeRatedSkillLevel, es.SupervisorRatedSkillLevel, es.AIEvaluatedScore, s.SkillName, s.SkillDescription
                 FROM EmployeeSkills es
                 JOIN Skill s ON es.SkillID = s.SkillID
                 WHERE es.EmployeeID = @employeeId
             `);
+        // Map expertise level to EmployeeRatedSkillLevel, fix SupervisorRatedSkillLevel mapping
+        const skills = skillsResult.recordset.map((row: any) => ({
+            EmployeeSkillID: row.EmployeeSkillID,
+            EmployeeRatedSkillLevel: row.EmployeeRatedSkillLevel,
+            SupervisorRatedSkillLevel: row.SupervisorRatedSkillLevel,
+            AIEvaluatedScore: row.AIEvaluatedScore,
+            SkillName: row.SkillName,
+            SkillDescription: row.SkillDescription
+        }));
         return res.json({
             user: { name: employee.FullName, email, employeeId: employee.EmployeeID },
-            skill: skillsResult.recordset
+            skill: skills
         });
     } catch (err) {
         console.error('Register info error:', err);

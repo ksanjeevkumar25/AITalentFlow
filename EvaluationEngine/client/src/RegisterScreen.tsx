@@ -19,6 +19,7 @@ const RegisterScreen: React.FC<RegisterScreenProps & { onStartEvaluation: (evalI
   const [error, setError] = useState('');
   const [cooldowns, setCooldowns] = useState<{ [skill: string]: number }>({});
   const [startingSkill, setStartingSkill] = useState<string | null>(null);
+  const [evaluationScores, setEvaluationScores] = useState<{ [skill: string]: number | null }>({});
   // Load cooldowns from localStorage
   useEffect(() => {
     const cd = localStorage.getItem(`eval_cooldowns_${email}`);
@@ -54,6 +55,10 @@ const RegisterScreen: React.FC<RegisterScreenProps & { onStartEvaluation: (evalI
         >
           Logout
         </button>
+        {/* Employee ID above the table, right-aligned */}
+        <div style={{ position: 'absolute', top: 24, left: 32, color: '#6366f1', fontWeight: 600, fontSize: 16 }}>
+          Employee ID: {userInfo?.employeeId || '-'}
+        </div>
         <h2 style={{ color: '#3b3b7a', marginBottom: 8, textAlign: 'center', fontSize: 32, fontWeight: 700 }}>Evaluation Dashboard</h2>
         <div style={{ marginBottom: 18, color: '#444', textAlign: 'left' }}>
           <b>User:</b> {userInfo?.name || email}<br/>
@@ -65,105 +70,119 @@ const RegisterScreen: React.FC<RegisterScreenProps & { onStartEvaluation: (evalI
               <th style={{ padding: 10, border: '1px solid #e5e7eb' }}>Skill</th>
               <th style={{ padding: 10, border: '1px solid #e5e7eb' }}>Description</th>
               <th style={{ padding: 10, border: '1px solid #e5e7eb' }}>Expertise Level</th>
-              <th style={{ padding: 10, border: '1px solid #e5e7eb' }}>Years of Experience</th>
+              <th style={{ padding: 10, border: '1px solid #e5e7eb' }}>Supervisor Rated Skill Level</th>
               <th style={{ padding: 10, border: '1px solid #e5e7eb' }}>Take Evaluation</th>
             </tr>
           </thead>
           <tbody>
-            {skills.map(skill => (
-              <tr key={skill.EmployeeSkillID}>
-                <td style={{ padding: 10, border: '1px solid #e5e7eb' }}>{skill.SkillName}</td>
-                <td style={{ padding: 10, border: '1px solid #e5e7eb' }}>{skill.SkillDescription}</td>
-                <td style={{ padding: 10, border: '1px solid #e5e7eb' }}>{skill.EmployeeRatedSkillLevel}</td>
-                <td style={{ padding: 10, border: '1px solid #e5e7eb' }}>{skill.YearsOfExperience}</td>
-                <td style={{ padding: 10, border: '1px solid #e5e7eb' }}>
-                  {/* Show Take Evaluation button as per cool-off period logic only */}
-                  {(!USE_COOLDOWN || !cooldowns[skill.SkillName] || Date.now() >= cooldowns[skill.SkillName]) ? (
-                    <button
-                      style={{
-                        color: '#fff',
-                        background: '#6366f1',
-                        fontWeight: 500,
-                        border: 'none',
-                        borderRadius: 6,
-                        padding: '6px 16px',
-                        cursor: 'pointer'
-                      }}
-                      onClick={async () => {
-                        setStartingSkill(skill.SkillName);
-                        let mappedSkillLevel = 0; // Beginner
-                        const years = Number(skill.YearsOfExperience);
-                        if (years >= 7) mappedSkillLevel = 2;
-                        else if (years >= 2) mappedSkillLevel = 1;
-                        try {
-                          const res = await startInterview({
-                            id: userInfo?.employeeId,
-                            name: userInfo?.name || email,
-                            skill: skill.SkillName,
-                            expertLevel: mappedSkillLevel,
-                            questionCount: QUESTION_COUNT
-                          });
-                          // Set cooldown if enabled
-                          if (USE_COOLDOWN) {
-                            const nextAllowed = Date.now() + COOLDOWN_DAYS * 24 * 60 * 60 * 1000;
-                            const newCooldowns = { ...cooldowns, [skill.SkillName]: nextAllowed };
-                            setCooldowns(newCooldowns);
-                            localStorage.setItem(`eval_cooldowns_${email}`, JSON.stringify(newCooldowns));
-                          }
-                          let initialQuestion: any = null;
-                          if (res.currentQuestion && res.currentQuestion.question && res.currentQuestion.choices) {
-                            initialQuestion = { question: res.currentQuestion.question, options: res.currentQuestion.choices };
-                          }
-                          onStartEvaluation({
-                            candidateId: userInfo?.employeeId,
-                            skill: skill.SkillName,
-                            expertLevel: mappedSkillLevel,
-                            questionCount: QUESTION_COUNT,
-                            name: userInfo?.name || email,
-                            initialQuestion
-                          });
-                        } catch (e) {
-                          alert('Failed to start evaluation.');
-                        }
-                        setStartingSkill(null);
-                      }}
-                    >
-                      {startingSkill === skill.SkillName ? (
-                        <div style={{
-                          position: 'fixed',
-                          top: 0,
-                          left: 0,
-                          width: '100vw',
-                          height: '100vh',
-                          background: 'rgba(255,255,255,0.7)',
-                          zIndex: 9999,
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                        }}>
-                          <Spinner message="Starting..." />
-                        </div>
-                      ) : 'Take Evaluation'}
-                    </button>
-                  ) : (
-                    <button
-                      disabled
-                      style={{
-                        color: '#fff',
-                        background: '#a5b4fc',
-                        fontWeight: 500,
-                        border: 'none',
-                        borderRadius: 6,
-                        padding: '6px 16px',
-                        cursor: 'not-allowed'
-                      }}
-                    >
-                      {`Available in ${Math.ceil((cooldowns[skill.SkillName] - Date.now()) / (1000 * 60 * 60 * 24))} days`}
-                    </button>
-                  )}
-                </td>
-              </tr>
-            ))}
+            {skills.map(skill => {
+              // Only show Take Evaluation if SupervisorRatedSkillLevel is present and not null/empty/zero
+              const hasSupervisorLevel = skill.SupervisorRatedSkillLevel !== undefined && skill.SupervisorRatedSkillLevel !== null && skill.SupervisorRatedSkillLevel !== '' && skill.SupervisorRatedSkillLevel !== 0;
+              return (
+                <tr key={skill.EmployeeSkillID}>
+                  <td style={{ padding: 10, border: '1px solid #e5e7eb' }}>{skill.SkillName}</td>
+                  <td style={{ padding: 10, border: '1px solid #e5e7eb' }}>{skill.SkillDescription}</td>
+                  <td style={{ padding: 10, border: '1px solid #e5e7eb' }}>{skill.EmployeeRatedSkillLevel}</td>
+                  <td style={{ padding: 10, border: '1px solid #e5e7eb' }}>{skill.SupervisorRatedSkillLevel ?? '-'}</td>
+                  <td style={{ padding: 10, border: '1px solid #e5e7eb' }}>
+                    {skill.AIEvaluatedScore !== undefined && skill.AIEvaluatedScore !== null ? (
+                      <span style={{ color: '#10b981', fontWeight: 600 }}>Score: {skill.AIEvaluatedScore}</span>
+                    ) : evaluationScores[skill.SkillName] !== undefined && evaluationScores[skill.SkillName] !== null ? (
+                      <span style={{ color: '#10b981', fontWeight: 600 }}>Score: {evaluationScores[skill.SkillName]}</span>
+                    ) : hasSupervisorLevel ? (
+                      (!USE_COOLDOWN || !cooldowns[skill.SkillName] || Date.now() >= cooldowns[skill.SkillName]) ? (
+                        <button
+                          style={{
+                            color: '#fff',
+                            background: '#6366f1',
+                            fontWeight: 500,
+                            border: 'none',
+                            borderRadius: 6,
+                            padding: '6px 16px',
+                            cursor: 'pointer'
+                          }}
+                          onClick={async () => {
+                            setStartingSkill(skill.SkillName);
+                            // Use SupervisorRatedSkillLevel as mappedSkillLevel directly
+                            let mappedSkillLevel = Number(skill.SupervisorRatedSkillLevel);
+                            if (isNaN(mappedSkillLevel)) mappedSkillLevel = 0;
+                            try {
+                              const res = await startInterview({
+                                id: userInfo?.employeeId,
+                                name: userInfo?.name || email,
+                                skill: skill.SkillName,
+                                expertLevel: mappedSkillLevel,
+                                questionCount: QUESTION_COUNT
+                              });
+                              // Set cooldown if enabled
+                              if (USE_COOLDOWN) {
+                                const nextAllowed = Date.now() + COOLDOWN_DAYS * 24 * 60 * 60 * 1000;
+                                const newCooldowns = { ...cooldowns, [skill.SkillName]: nextAllowed };
+                                setCooldowns(newCooldowns);
+                                localStorage.setItem(`eval_cooldowns_${email}`, JSON.stringify(newCooldowns));
+                              }
+                              let initialQuestion: any = null;
+                              if (res.currentQuestion && res.currentQuestion.question && res.currentQuestion.choices) {
+                                initialQuestion = { question: res.currentQuestion.question, options: res.currentQuestion.choices };
+                              }
+                              // Wrap onStartEvaluation to capture score after evaluation
+                              const handleEval = async (evalInfo: any) => {
+                                // Call the original onStartEvaluation
+                                await onStartEvaluation(evalInfo);
+                              };
+                              handleEval({
+                                candidateId: userInfo?.employeeId,
+                                skill: skill.SkillName,
+                                expertLevel: mappedSkillLevel,
+                                questionCount: QUESTION_COUNT,
+                                name: userInfo?.name || email,
+                                initialQuestion,
+                                setScore: (score: number) => setEvaluationScores(s => ({ ...s, [skill.SkillName]: score }))
+                              });
+                            } catch (e) {
+                              alert('Failed to start evaluation.');
+                            }
+                            setStartingSkill(null);
+                          }}
+                        >
+                          {startingSkill === skill.SkillName ? (
+                            <div style={{
+                              position: 'fixed',
+                              top: 0,
+                              left: 0,
+                              width: '100vw',
+                              height: '100vh',
+                              background: 'rgba(255,255,255,0.7)',
+                              zIndex: 9999,
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                            }}>
+                              <Spinner message="Starting..." />
+                            </div>
+                          ) : 'Take Evaluation'}
+                        </button>
+                      ) : (
+                        <button
+                          disabled
+                          style={{
+                            color: '#fff',
+                            background: '#a5b4fc',
+                            fontWeight: 500,
+                            border: 'none',
+                            borderRadius: 6,
+                            padding: '6px 16px',
+                            cursor: 'not-allowed'
+                          }}
+                        >
+                          {`Available in ${Math.ceil((cooldowns[skill.SkillName] - Date.now()) / (1000 * 60 * 60 * 24))} days`}
+                        </button>
+                      )
+                    ) : null}
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
