@@ -1,0 +1,123 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Quantify: Skill Evaluation API",
+    "version": "1.0.0",
+    "description": "API documentation for Quantify skill evaluation engine."
+  },
+  "servers": [
+    { "url": "http://localhost:3000" }
+  ],
+  "paths": {
+    "/evaluate": {
+      "post": {
+        "summary": "Register and get questions",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": { "type": "string" },
+                  "skills": { "type": "array", "items": { "type": "string" } },
+                  "techStack": { "type": "string" },
+                  "skillLevel": { "type": "string" }
+                },
+                "required": ["email", "skills", "techStack", "skillLevel"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Questions returned" }
+        }
+      }
+    },
+    "/save-score": {
+      "post": {
+        "summary": "Save evaluation score",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "score": { "type": "integer" },
+                  "candidateName": { "type": "string" },
+                  "skill": { "type": "string" }
+                },
+                "required": ["score", "candidateName", "skill"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Score saved" }
+        }
+      }
+    },
+    "/questions": {
+      "get": {
+        "summary": "Fetch questions",
+        "parameters": [
+          { "name": "skill", "in": "query", "required": true, "schema": { "type": "string" } },
+          { "name": "skillLevel", "in": "query", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "Questions returned" }
+        }
+      }
+    },
+    "/questions/fetchQuestions": {
+      "post": {
+        "summary": "Fetch questions (POST)",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "skill": { "type": "string" },
+                  "skillLevel": { "type": "string" }
+                },
+                "required": ["skill", "skillLevel"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Questions returned" }
+        }
+      }
+    },
+    "/questions/submit": {
+      "post": {
+        "summary": "Submit answers",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": { "type": "string" },
+                  "answers": { "type": "array", "items": { "type": "object", "properties": { "id": { "type": "integer" }, "answer": { "type": "string" } }, "required": ["id", "answer"] } },
+                  "skill": { "type": "string" },
+                  "skillLevel": { "type": "string" },
+                  "candidateName": { "type": "string" }
+                },
+                "required": ["email", "answers", "skill", "skillLevel", "candidateName"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Result and score returned" }
+        }
+      }
+    }
+  }
+}
