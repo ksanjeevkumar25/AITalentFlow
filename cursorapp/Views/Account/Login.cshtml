@@ -20,7 +20,7 @@
                         @if (!ViewData.ModelState.IsValid)
                         {
                             <div class="alert alert-danger">
-                                Invalid username or password. Please try again.
+                                Invalid email or password. Please try again.
                             </div>
                         }
 
@@ -28,8 +28,8 @@
                             <input type="hidden" name="returnUrl" value="@ViewData["ReturnUrl"]" />
                             
                             <div class="mb-3">
-                                <label for="username" class="form-label">Username</label>
-                                <input type="text" class="form-control" id="username" name="username" required>
+                                <label for="username" class="form-label">Email Address</label>
+                                <input type="email" class="form-control" id="username" name="username" placeholder="Enter your email address" required>
                             </div>
 
                             <div class="mb-3">
@@ -42,7 +42,7 @@
 
                         <div class="text-center mt-3">
                             <small class="text-muted">
-                                Demo credentials: <strong>demouser</strong> / <strong>test123</strong>
+                                Enter your company email address and password to sign in
                             </small>
                         </div>
                     </div>

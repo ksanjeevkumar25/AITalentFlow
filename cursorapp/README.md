@@ -15,10 +15,23 @@ A simple ASP.NET Core web application with authentication functionality and skil
 - Responsive design with gradient backgrounds
 - Font Awesome icons for enhanced UI
 
-## Login Credentials
+## Authentication
 
-- **Username:** `demouser`
-- **Password:** `test123`
+The application uses database authentication with the following setup:
+
+- **Login Method**: Use your company email address and password
+- **User Data**: Stored in `Users` and `Employee` tables
+- **Authentication Flow**: 
+  1. Enter your email address (from Employee table)
+  2. Enter your password (from Users table linked by EmployeeID)
+  3. System validates credentials and determines user role
+- **Admin Role**: Determined by employee hierarchy (employees with no supervisor)
+
+## Database Tables
+
+- **Employee Table**: Contains EmployeeID, EmailID, FirstName, LastName, Department, SupervisorID
+- **Users Table**: Contains UserID, EmployeeID, Password
+- **Authentication**: Email from Employee table + Password from Users table
 
 ## How to Run
 
