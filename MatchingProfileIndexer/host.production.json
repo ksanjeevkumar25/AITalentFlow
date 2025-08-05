@@ -16,12 +16,13 @@
     },
     "cors": {
         "allowedOrigins": [
-            "*"
+            "https://aitalentflow-frontend.azurestaticapps.net",
+            "https://your-custom-domain.com"
         ],
         "allowedMethods": [
             "GET",
             "POST",
-            "PUT", 
+            "PUT",
             "DELETE",
             "OPTIONS"
         ],
@@ -30,9 +31,8 @@
             "Authorization",
             "Accept",
             "Origin",
-            "User-Agent",
-            "X-Requested-With"
+            "User-Agent"
         ],
-        "allowCredentials": false
+        "allowCredentials": true
     }
 }

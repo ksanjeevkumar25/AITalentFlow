@@ -30,7 +30,8 @@ const RegisterScreen: React.FC<RegisterScreenProps & { onStartEvaluation: (evalI
     const fetchSkills = async () => {
       try {
         // Fetch user info and skills from backend
-        const res = await axios.post('http://localhost:3000/register-info', { email });
+        const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:3000';
+        const res = await axios.post(`${apiUrl}/register-info`, { email });
         setUserInfo(res.data.user);
         setSkills(res.data.skill || []);
         setLoading(false);
@@ -48,22 +49,11 @@ const RegisterScreen: React.FC<RegisterScreenProps & { onStartEvaluation: (evalI
   return (
     <div style={{ minHeight: '100vh', background: 'linear-gradient(120deg, #e0e7ff 0%, #f8fafc 100%)', padding: 40 }}>
       <div style={{ maxWidth: 800, margin: 'auto', background: '#fff', borderRadius: 18, boxShadow: '0 4px 24px 0 rgba(80,80,180,0.10)', padding: 36, position: 'relative' }}>
-        {/* Logout link at top right */}
-        <button
-          onClick={() => window.location.reload()}
-          style={{ position: 'absolute', top: 24, right: 32, background: 'none', border: 'none', color: '#6366f1', fontWeight: 500, cursor: 'pointer', fontSize: 16 }}
-        >
-          Logout
-        </button>
-        {/* Employee ID above the table, right-aligned */}
-        <div style={{ position: 'absolute', top: 24, left: 32, color: '#6366f1', fontWeight: 600, fontSize: 16 }}>
-          Employee ID: {userInfo?.employeeId || '-'}
-        </div>
-        <h2 style={{ color: '#3b3b7a', marginBottom: 8, textAlign: 'center', fontSize: 32, fontWeight: 700 }}>Evaluation Dashboard</h2>
-        <div style={{ marginBottom: 18, color: '#444', textAlign: 'left' }}>
+        {/* <h2 style={{ color: '#3b3b7a', marginBottom: 8, textAlign: 'center', fontSize: 32, fontWeight: 700 }}>Evaluation Dashboard</h2> */}
+        {/* <div style={{ marginBottom: 18, color: '#444', textAlign: 'left' }}>
           <b>User:</b> {userInfo?.name || email}<br/>
           <b>Email:</b> {email}
-        </div>
+        </div> */}
         <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: 18 }}>
           <thead>
             <tr style={{ background: '#f1f5ff' }}>

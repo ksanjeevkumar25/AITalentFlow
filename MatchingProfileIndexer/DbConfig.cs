@@ -9,9 +9,11 @@ public class DbConfig
     public string Instance { get; set; } = "SQLDemo";
     public bool Encrypt { get; set; } = false;
     public bool TrustServerCertificate { get; set; } = true;
+    public int ConnectionTimeout { get; set; } = 30;
+    public int CommandTimeout { get; set; } = 300;
 
     public string GetConnectionString()
     {
-        return $"Server={Server}\\{Instance};Database={Database};User Id={User};Password={Password};Encrypt={Encrypt};TrustServerCertificate={TrustServerCertificate};";
+        return $"Server={Server}\\{Instance};Database={Database};User Id={User};Password={Password};Encrypt={Encrypt};TrustServerCertificate={TrustServerCertificate};Connection Timeout={ConnectionTimeout};Command Timeout={CommandTimeout};";
     }
 }

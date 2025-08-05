@@ -3,8 +3,42 @@
 	"tasks": [
 		{
 			"type": "shell",
+			"label": "Start Backend Server",
+			"command": "npm",
+			"args": ["start"],
+			"group": "build",
+			"isBackground": true,
+			"problemMatcher": []
+		},
+		{
+			"type": "shell",
 			"label": "Start Evaluation Engine",
-			"command": "npx ts-node src/app.ts"
+			"command": "npx",
+			"args": ["ts-node", "src/app.ts"],
+			"group": "build",
+			"isBackground": true,
+			"problemMatcher": []
+		},
+		{
+			"type": "shell",
+			"label": "Start Backend Server (Compiled)",
+			"command": "node",
+			"args": ["dist/app.js"],
+			"group": "build",
+			"isBackground": true,
+			"problemMatcher": []
+		},
+		{
+			"type": "shell",
+			"label": "Build Frontend",
+			"command": "npm",
+			"args": ["run", "build"],
+			"options": {
+				"cwd": "${workspaceFolder}/client"
+			},
+			"group": "build",
+			"isBackground": false,
+			"problemMatcher": []
 		}
 	]
 }

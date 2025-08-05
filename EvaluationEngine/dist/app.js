@@ -43,6 +43,8 @@ const cors_1 = __importDefault(require("cors"));
 const body_parser_1 = __importDefault(require("body-parser"));
 const evaluationRoutes_1 = require("./routes/evaluationRoutes");
 const questionRoutes_1 = require("./routes/questionRoutes");
+const priorityMatchingRoutes_1 = require("./routes/priorityMatchingRoutes");
+const serviceOrderRoutes_1 = require("./routes/serviceOrderRoutes");
 const swagger_ui_express_1 = __importDefault(require("swagger-ui-express"));
 const fs = __importStar(require("fs"));
 const path = __importStar(require("path"));
@@ -52,6 +54,53 @@ const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3001';
 app.use((0, cors_1.default)({ origin: frontendUrl, credentials: true }));
 const PORT = process.env.PORT || 3000;
 app.use(body_parser_1.default.json());
+// Health check endpoint
+app.get('/health', (req, res) => {
+    res.json({
+        success: true,
+        message: 'Server is running',
+        timestamp: new Date().toISOString()
+    });
+});
+// Database health check endpoint
+app.get('/health/db', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const pool = yield mssql_1.default.connect(config_1.dbConfig);
+        yield pool.request().query('SELECT 1 as test');
+        res.json({
+            success: true,
+            message: 'Database connection successful',
+            timestamp: new Date().toISOString()
+        });
+    }
+    catch (error) {
+        res.status(500).json({
+            success: false,
+            message: 'Database connection failed',
+            error: error instanceof Error ? error.message : 'Unknown error',
+            timestamp: new Date().toISOString()
+        });
+    }
+}));
+// Debug endpoint to list employees
+app.get('/debug/employees', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const pool = yield mssql_1.default.connect(config_1.dbConfig);
+        const result = yield pool.request().query('SELECT TOP 10 EmployeeID, FirstName, LastName, EmailID FROM Employee');
+        res.json({
+            success: true,
+            data: result.recordset,
+            count: result.recordset.length
+        });
+    }
+    catch (error) {
+        res.status(500).json({
+            success: false,
+            message: 'Failed to fetch employees',
+            error: error instanceof Error ? error.message : 'Unknown error'
+        });
+    }
+}));
 // Login endpoint
 app.post('/login', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const { email, password } = req.body;
@@ -107,14 +156,23 @@ app.post('/register-info', (req, res) => __awaiter(void 0, void 0, void 0, funct
         const skillsResult = yield pool.request()
             .input('employeeId', mssql_1.default.Int, employee.EmployeeID)
             .query(`
-                SELECT es.EmployeeSkillID, es.EmployeeRatedSkillLevel, es.YearsOfExperience, s.SkillName, s.SkillDescription
+                SELECT es.EmployeeSkillID, es.EmployeeRatedSkillLevel, es.SupervisorRatedSkillLevel, es.AIEvaluatedScore, s.SkillName, s.SkillDescription
                 FROM EmployeeSkills es
                 JOIN Skill s ON es.SkillID = s.SkillID
                 WHERE es.EmployeeID = @employeeId
             `);
+        // Map expertise level to EmployeeRatedSkillLevel, fix SupervisorRatedSkillLevel mapping
+        const skills = skillsResult.recordset.map((row) => ({
+            EmployeeSkillID: row.EmployeeSkillID,
+            EmployeeRatedSkillLevel: row.EmployeeRatedSkillLevel,
+            SupervisorRatedSkillLevel: row.SupervisorRatedSkillLevel,
+            AIEvaluatedScore: row.AIEvaluatedScore,
+            SkillName: row.SkillName,
+            SkillDescription: row.SkillDescription
+        }));
         return res.json({
             user: { name: employee.FullName, email, employeeId: employee.EmployeeID },
-            skill: skillsResult.recordset
+            skill: skills
         });
     }
     catch (err) {
@@ -122,9 +180,48 @@ app.post('/register-info', (req, res) => __awaiter(void 0, void 0, void 0, funct
         return res.status(500).json({ success: false, message: 'Server error.' });
     }
 }));
+// Update EmployeeSkills after evaluation
+app.post('/update-employee-skill', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const { candidateId, skill, score, remarks } = req.body;
+    if (!candidateId || !skill || typeof score !== 'number' || !remarks) {
+        return res.status(400).json({ success: false, message: 'Missing required fields.' });
+    }
+    try {
+        const pool = yield mssql_1.default.connect(config_1.dbConfig);
+        // Find SkillID for the given skill name
+        const skillResult = yield pool.request()
+            .input('skillName', mssql_1.default.VarChar, skill)
+            .query('SELECT SkillID FROM Skill WHERE SkillName = @skillName');
+        if (skillResult.recordset.length === 0) {
+            return res.status(404).json({ success: false, message: 'Skill not found.' });
+        }
+        const skillId = skillResult.recordset[0].SkillID;
+        // Update EmployeeSkills row
+        yield pool.request()
+            .input('employeeId', mssql_1.default.Int, candidateId)
+            .input('skillId', mssql_1.default.Int, skillId)
+            .input('score', mssql_1.default.Int, score)
+            .input('remarks', mssql_1.default.VarChar, remarks)
+            .input('evalDate', mssql_1.default.DateTime, new Date())
+            .query(`
+                UPDATE EmployeeSkills
+                SET AIEvaluatedScore = @score,
+                    AIEvaluationDate = @evalDate,
+                    AIEvaluationRemarks = @remarks
+                WHERE EmployeeID = @employeeId AND SkillID = @skillId
+            `);
+        return res.json({ success: true });
+    }
+    catch (err) {
+        console.error('Update employee skill error:', err);
+        return res.status(500).json({ success: false, message: 'Server error.' });
+    }
+}));
 app.use(body_parser_1.default.urlencoded({ extended: true }));
 (0, evaluationRoutes_1.setEvaluationRoutes)(app);
 (0, questionRoutes_1.setQuestionRoutes)(app);
+(0, priorityMatchingRoutes_1.setPriorityMatchingRoutes)(app);
+(0, serviceOrderRoutes_1.setServiceOrderRoutes)(app);
 // Swagger setup
 const swaggerPath = path.join(__dirname, 'swagger.json');
 const swaggerDocument = JSON.parse(fs.readFileSync(swaggerPath, 'utf8'));
@@ -134,20 +231,14 @@ app.get('/', (req, res) => {
     res.send(`
 <h2>Quantify: Skill Evaluation API</h2>
 <ul style="line-height:1.7;font-size:16px;">
-  <li><b>POST /evaluate</b> — Register & get questions<br>
-    <code>{ email, skills, techStack, skillLevel }</code>
+  <li><b>POST /login</b> — Login user<br>
+    <code>{ email, password }</code>
   </li>
-  <li><b>POST /save-score</b> — Save score<br>
-    <code>{ score, candidateName, skill }</code>
+  <li><b>POST /register-info</b> — Get registration info for user<br>
+    <code>{ email }</code>
   </li>
-  <li><b>GET /questions</b> — Fetch questions<br>
-    <code>?skill=java&skillLevel=low</code>
-  </li>
-  <li><b>POST /questions/fetchQuestions</b> — Fetch questions<br>
-    <code>{ skill, skillLevel }</code>
-  </li>
-  <li><b>POST /questions/submit</b> — Submit answers<br>
-    <code>{ email, answers, skill, skillLevel, candidateName }</code>
+  <li><b>POST /update-employee-skill</b> — Update employee skill after evaluation<br>
+    <code>{ candidateId, skill, score, remarks }</code>
   </li>
 </ul>
 <div style="color:#888;font-size:13px;margin-top:1em;">All POST requests require <b>Content-Type: application/json</b>.<br>See docs or frontend for full payload examples.</div>

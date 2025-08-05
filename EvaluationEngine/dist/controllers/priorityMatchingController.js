@@ -1,0 +1,615 @@
+"use strict";
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.PriorityMatchingController = void 0;
+const mssql_1 = __importDefault(require("mssql"));
+const config_1 = require("../config");
+class PriorityMatchingController {
+    // Get priority matching records for a specific employee
+    getEmployeeMatchings(req, res) {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                const { employeeId } = req.params;
+                if (!employeeId) {
+                    res.status(400).json({
+                        success: false,
+                        message: 'Employee ID is required'
+                    });
+                    return;
+                }
+                const pool = yield mssql_1.default.connect(config_1.dbConfig);
+                // Query to get priority matching records with service order details
+                const query = `
+        SELECT TOP 50
+          pml.MatchingListID,
+          pml.ServiceOrderID,
+          pml.EmployeeID,
+          pml.MatchingIndexScore,
+          pml.Remarks,
+          pml.Priority,
+          pml.AssociateWilling,
+          so.AccountName,
+          so.Location,
+          so.CCARole,
+          so.HiringManager,
+          so.RequiredFrom,
+          so.ClientEvaluation,
+          so.SOState,
+          so.AssignedToResource,
+          so.Grade as RequiredGrade,
+          emp.Grade as EmployeeGrade,
+          emp.FirstName + ' ' + emp.LastName as EmployeeName
+        FROM PriorityMatchingList pml WITH (NOLOCK)
+        INNER JOIN ServiceOrder so WITH (NOLOCK) ON pml.ServiceOrderID = so.ServiceOrderID
+        INNER JOIN Employee emp WITH (NOLOCK) ON pml.EmployeeID = emp.EmployeeID
+        WHERE pml.EmployeeID = @employeeId
+          AND so.AssignedToResource IS NULL
+          AND so.Grade = emp.Grade
+        ORDER BY pml.Priority ASC, pml.MatchingIndexScore DESC
+      `;
+                const result = yield pool.request()
+                    .input('employeeId', mssql_1.default.Int, parseInt(employeeId))
+                    .query(query);
+                const matchings = result.recordset.map((record) => ({
+                    MatchingListID: record.MatchingListID,
+                    ServiceOrderID: record.ServiceOrderID,
+                    EmployeeID: record.EmployeeID,
+                    MatchingIndexScore: record.MatchingIndexScore,
+                    Remarks: record.Remarks || '',
+                    Priority: record.Priority,
+                    AssociateWilling: record.AssociateWilling,
+                    AccountName: record.AccountName || '',
+                    Location: record.Location || '',
+                    CCARole: record.CCARole || '',
+                    HiringManager: record.HiringManager,
+                    RequiredFrom: record.RequiredFrom ? new Date(record.RequiredFrom).toISOString().split('T')[0] : '',
+                    ClientEvaluation: record.ClientEvaluation || '',
+                    SOState: record.SOState || '',
+                    AssignedToResource: record.AssignedToResource,
+                    RequiredGrade: record.RequiredGrade || '',
+                    EmployeeGrade: record.EmployeeGrade || '',
+                    EmployeeName: record.EmployeeName || ''
+                }));
+                res.json({
+                    success: true,
+                    data: matchings,
+                    count: matchings.length
+                });
+            }
+            catch (error) {
+                console.error('Error fetching employee matchings:', error);
+                res.status(500).json({
+                    success: false,
+                    message: 'Failed to fetch priority matching records',
+                    error: error instanceof Error ? error.message : 'Unknown error'
+                });
+            }
+        });
+    }
+    // Get priority matching records by email (for logged-in user)
+    getEmployeeMatchingsByEmail(req, res) {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                const { email } = req.params;
+                if (!email) {
+                    res.status(400).json({
+                        success: false,
+                        message: 'Email is required'
+                    });
+                    return;
+                }
+                const pool = yield mssql_1.default.connect(config_1.dbConfig);
+                // First get employee ID from email
+                const employeeQuery = `
+        SELECT EmployeeID, 
+               FirstName + ' ' + LastName as Name, 
+               EmailID as Email 
+        FROM Employee 
+        WHERE EmailID = @email
+      `;
+                const employeeResult = yield pool.request()
+                    .input('email', mssql_1.default.VarChar, email)
+                    .query(employeeQuery);
+                if (employeeResult.recordset.length === 0) {
+                    res.status(404).json({
+                        success: false,
+                        message: 'Employee not found with the provided email'
+                    });
+                    return;
+                }
+                const employee = employeeResult.recordset[0];
+                const employeeId = employee.EmployeeID;
+                // Query to get priority matching records with service order details
+                const query = `
+        SELECT TOP 50
+          pml.MatchingListID,
+          pml.ServiceOrderID,
+          pml.EmployeeID,
+          pml.MatchingIndexScore,
+          pml.Remarks,
+          pml.Priority,
+          pml.AssociateWilling,
+          so.AccountName,
+          so.Location,
+          so.CCARole,
+          so.HiringManager,
+          so.RequiredFrom,
+          so.ClientEvaluation,
+          so.SOState,
+          so.AssignedToResource,
+          so.Grade as RequiredGrade,
+          emp.Grade as EmployeeGrade,
+          emp.FirstName + ' ' + emp.LastName as EmployeeName
+        FROM PriorityMatchingList pml WITH (NOLOCK)
+        INNER JOIN ServiceOrder so WITH (NOLOCK) ON pml.ServiceOrderID = so.ServiceOrderID
+        INNER JOIN Employee emp WITH (NOLOCK) ON pml.EmployeeID = emp.EmployeeID
+        WHERE pml.EmployeeID = @employeeId
+          AND so.AssignedToResource IS NULL
+          AND so.Grade = emp.Grade
+        ORDER BY pml.Priority ASC, pml.MatchingIndexScore DESC
+      `;
+                const result = yield pool.request()
+                    .input('employeeId', mssql_1.default.Int, employeeId)
+                    .query(query);
+                const matchings = result.recordset.map((record) => ({
+                    MatchingListID: record.MatchingListID,
+                    ServiceOrderID: record.ServiceOrderID,
+                    EmployeeID: record.EmployeeID,
+                    MatchingIndexScore: record.MatchingIndexScore,
+                    Remarks: record.Remarks || '',
+                    Priority: record.Priority,
+                    AssociateWilling: record.AssociateWilling,
+                    AccountName: record.AccountName || '',
+                    Location: record.Location || '',
+                    CCARole: record.CCARole || '',
+                    HiringManager: record.HiringManager,
+                    RequiredFrom: record.RequiredFrom ? new Date(record.RequiredFrom).toISOString().split('T')[0] : '',
+                    ClientEvaluation: record.ClientEvaluation || '',
+                    SOState: record.SOState || '',
+                    AssignedToResource: record.AssignedToResource,
+                    RequiredGrade: record.RequiredGrade || '',
+                    EmployeeGrade: record.EmployeeGrade || '',
+                    EmployeeName: record.EmployeeName || ''
+                }));
+                res.json({
+                    success: true,
+                    data: matchings,
+                    count: matchings.length,
+                    employee: {
+                        id: employee.EmployeeID,
+                        name: employee.Name,
+                        email: employee.Email
+                    }
+                });
+            }
+            catch (error) {
+                console.error('Error fetching employee matchings by email:', error);
+                res.status(500).json({
+                    success: false,
+                    message: 'Failed to fetch priority matching records',
+                    error: error instanceof Error ? error.message : 'Unknown error'
+                });
+            }
+        });
+    }
+    // Update associate willingness
+    updateAssociateWillingness(req, res) {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                const { matchingListId } = req.params;
+                const { associateWilling } = req.body;
+                if (!matchingListId) {
+                    res.status(400).json({
+                        success: false,
+                        message: 'Matching List ID is required'
+                    });
+                    return;
+                }
+                const pool = yield mssql_1.default.connect(config_1.dbConfig);
+                const query = `
+        UPDATE PriorityMatchingList 
+        SET AssociateWilling = @associateWilling
+        WHERE MatchingListID = @matchingListId
+      `;
+                yield pool.request()
+                    .input('matchingListId', mssql_1.default.Int, parseInt(matchingListId))
+                    .input('associateWilling', mssql_1.default.Bit, associateWilling)
+                    .query(query);
+                res.json({
+                    success: true,
+                    message: 'Associate willingness updated successfully'
+                });
+            }
+            catch (error) {
+                console.error('Error updating associate willingness:', error);
+                res.status(500).json({
+                    success: false,
+                    message: 'Failed to update associate willingness',
+                    error: error instanceof Error ? error.message : 'Unknown error'
+                });
+            }
+        });
+    }
+    // Get service orders where the logged-in employee is the hiring manager
+    getServiceOrdersByHiringManager(req, res) {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                const { email } = req.params;
+                if (!email) {
+                    res.status(400).json({
+                        success: false,
+                        message: 'Email is required'
+                    });
+                    return;
+                }
+                const pool = yield mssql_1.default.connect(config_1.dbConfig);
+                // First get employee ID from email
+                const employeeQuery = `
+        SELECT EmployeeID, 
+               FirstName + ' ' + LastName as Name, 
+               EmailID as Email 
+        FROM Employee 
+        WHERE EmailID = @email
+      `;
+                const employeeResult = yield pool.request()
+                    .input('email', mssql_1.default.VarChar, email)
+                    .query(employeeQuery);
+                if (employeeResult.recordset.length === 0) {
+                    res.status(404).json({
+                        success: false,
+                        message: 'Employee not found with the provided email'
+                    });
+                    return;
+                }
+                const employee = employeeResult.recordset[0];
+                const employeeId = employee.EmployeeID;
+                // Query to get service orders where employee is hiring manager with priority matches
+                const query = `
+        SELECT 
+          so.ServiceOrderID,
+          so.AccountName,
+          so.Location,
+          so.CCARole,
+          so.HiringManager,
+          so.RequiredFrom,
+          so.ClientEvaluation,
+          so.SOState,
+          so.AssignedToResource,
+          so.Grade,
+          pml.MatchingListID,
+          pml.EmployeeID,
+          pml.MatchingIndexScore,
+          pml.Remarks,
+          pml.Priority,
+          pml.AssociateWilling,
+          emp.Grade as EmployeeGrade,
+          emp.FirstName + ' ' + emp.LastName as EmployeeName
+        FROM ServiceOrder so WITH (NOLOCK)
+        LEFT JOIN PriorityMatchingList pml WITH (NOLOCK) ON so.ServiceOrderID = pml.ServiceOrderID
+        LEFT JOIN Employee emp WITH (NOLOCK) ON pml.EmployeeID = emp.EmployeeID
+        WHERE so.HiringManager = @employeeId
+        ORDER BY so.ServiceOrderID DESC, pml.Priority ASC, pml.MatchingIndexScore DESC
+      `;
+                const result = yield pool.request()
+                    .input('employeeId', mssql_1.default.Int, employeeId)
+                    .query(query);
+                // Group the results by ServiceOrderID
+                const serviceOrdersMap = new Map();
+                result.recordset.forEach((record) => {
+                    const serviceOrderId = record.ServiceOrderID;
+                    if (!serviceOrdersMap.has(serviceOrderId)) {
+                        serviceOrdersMap.set(serviceOrderId, {
+                            ServiceOrderID: record.ServiceOrderID,
+                            AccountName: record.AccountName || '',
+                            Location: record.Location || '',
+                            CCARole: record.CCARole || '',
+                            HiringManager: record.HiringManager,
+                            RequiredFrom: record.RequiredFrom ? new Date(record.RequiredFrom).toISOString().split('T')[0] : '',
+                            ClientEvaluation: record.ClientEvaluation || '',
+                            SOState: record.SOState || '',
+                            AssignedToResource: record.AssignedToResource,
+                            Grade: record.Grade || '',
+                            matches: [],
+                            totalMatches: 0
+                        });
+                    }
+                    // Add priority matching data if it exists
+                    if (record.MatchingListID) {
+                        const serviceOrder = serviceOrdersMap.get(serviceOrderId);
+                        serviceOrder.matches.push({
+                            MatchingListID: record.MatchingListID,
+                            EmployeeID: record.EmployeeID,
+                            EmployeeName: record.EmployeeName || '',
+                            MatchingIndexScore: record.MatchingIndexScore,
+                            Remarks: record.Remarks || '',
+                            Priority: record.Priority,
+                            AssociateWilling: record.AssociateWilling,
+                            EmployeeGrade: record.EmployeeGrade || ''
+                        });
+                        serviceOrder.totalMatches = serviceOrder.matches.length;
+                    }
+                });
+                const serviceOrders = Array.from(serviceOrdersMap.values());
+                res.json({
+                    success: true,
+                    data: serviceOrders,
+                    count: serviceOrders.length,
+                    employee: {
+                        id: employee.EmployeeID,
+                        name: employee.Name,
+                        email: employee.Email
+                    }
+                });
+            }
+            catch (error) {
+                console.error('Error fetching service orders by hiring manager:', error);
+                res.status(500).json({
+                    success: false,
+                    message: 'Failed to fetch service orders',
+                    error: error instanceof Error ? error.message : 'Unknown error'
+                });
+            }
+        });
+    }
+    // Allocate a resource to a service order
+    allocateResourceToServiceOrder(req, res) {
+        return __awaiter(this, void 0, void 0, function* () {
+            console.log('=== ALLOCATION REQUEST START ===');
+            console.log('Request body:', JSON.stringify(req.body, null, 2));
+            try {
+                const { serviceOrderId, employeeId, userEmail } = req.body;
+                console.log('Step 1: Validating input parameters');
+                console.log('ServiceOrderID:', serviceOrderId, 'Type:', typeof serviceOrderId);
+                console.log('EmployeeID:', employeeId, 'Type:', typeof employeeId);
+                console.log('UserEmail:', userEmail, 'Type:', typeof userEmail);
+                if (!serviceOrderId || !employeeId || !userEmail) {
+                    console.log('❌ VALIDATION FAILED: Missing required fields');
+                    res.status(400).json({
+                        success: false,
+                        message: 'Service Order ID, Employee ID, and User Email are required'
+                    });
+                    return;
+                }
+                console.log('Step 2: Establishing database connection');
+                const pool = yield mssql_1.default.connect(config_1.dbConfig);
+                console.log('✅ Database connection established');
+                // Step 3: Check if ServiceOrder exists
+                console.log('Step 3: Checking if Service Order exists');
+                const serviceOrderExistsQuery = `
+        SELECT ServiceOrderID, SOState, AssignedToResource, RequiredFrom, HiringManager
+        FROM ServiceOrder
+        WHERE ServiceOrderID = @serviceOrderId
+      `;
+                const serviceOrderExistsResult = yield pool.request()
+                    .input('serviceOrderId', mssql_1.default.Int, serviceOrderId)
+                    .query(serviceOrderExistsQuery);
+                console.log('Service Order query result:', serviceOrderExistsResult.recordset);
+                if (serviceOrderExistsResult.recordset.length === 0) {
+                    console.log('❌ Service Order not found');
+                    res.status(404).json({
+                        success: false,
+                        message: `Service Order #${serviceOrderId} not found in database`
+                    });
+                    return;
+                }
+                const serviceOrderData = serviceOrderExistsResult.recordset[0];
+                console.log('✅ Service Order found:', serviceOrderData);
+                // Step 4: Verify hiring manager permission
+                console.log('Step 4: Verifying hiring manager permission');
+                const hiringManagerQuery = `
+        SELECT so.ServiceOrderID, so.HiringManager, emp.EmailID as HiringManagerEmail, emp.FirstName + ' ' + emp.LastName as HiringManagerName
+        FROM ServiceOrder so
+        INNER JOIN Employee emp ON so.HiringManager = emp.EmployeeID
+        WHERE so.ServiceOrderID = @serviceOrderId
+          AND emp.EmailID = @userEmail
+      `;
+                const hiringManagerResult = yield pool.request()
+                    .input('serviceOrderId', mssql_1.default.Int, serviceOrderId)
+                    .input('userEmail', mssql_1.default.VarChar, userEmail)
+                    .query(hiringManagerQuery);
+                console.log('Hiring manager check result:', hiringManagerResult.recordset);
+                if (hiringManagerResult.recordset.length === 0) {
+                    console.log('❌ Permission denied - checking who the actual hiring manager is');
+                    const actualHiringManagerQuery = `
+          SELECT so.ServiceOrderID, so.HiringManager, emp.EmailID as HiringManagerEmail, emp.FirstName + ' ' + emp.LastName as HiringManagerName
+          FROM ServiceOrder so
+          INNER JOIN Employee emp ON so.HiringManager = emp.EmployeeID
+          WHERE so.ServiceOrderID = @serviceOrderId
+        `;
+                    const actualHiringManagerResult = yield pool.request()
+                        .input('serviceOrderId', mssql_1.default.Int, serviceOrderId)
+                        .query(actualHiringManagerQuery);
+                    console.log('Actual hiring manager for this SO:', actualHiringManagerResult.recordset);
+                    res.status(403).json({
+                        success: false,
+                        message: `You do not have permission to allocate resources to this service order. Current user: ${userEmail}`
+                    });
+                    return;
+                }
+                console.log('✅ Hiring manager permission verified');
+                // Step 5: Check service order state
+                console.log('Step 5: Checking service order state');
+                if (serviceOrderData.AssignedToResource) {
+                    console.log('❌ Service order already assigned to:', serviceOrderData.AssignedToResource);
+                    res.status(400).json({
+                        success: false,
+                        message: `Service order is already assigned to resource #${serviceOrderData.AssignedToResource}`
+                    });
+                    return;
+                }
+                if (serviceOrderData.SOState !== 'Open') {
+                    console.log('❌ Service order not in Open state. Current state:', serviceOrderData.SOState);
+                    res.status(400).json({
+                        success: false,
+                        message: `Service order is not in Open state. Current state: ${serviceOrderData.SOState}`
+                    });
+                    return;
+                }
+                console.log('✅ Service order is available for allocation');
+                // Step 6: Check employee exists and is willing
+                console.log('Step 6: Checking employee willingness');
+                const employeeQuery = `
+        SELECT pml.EmployeeID, pml.AssociateWilling, emp.FirstName + ' ' + emp.LastName as EmployeeName
+        FROM PriorityMatchingList pml
+        INNER JOIN Employee emp ON pml.EmployeeID = emp.EmployeeID
+        WHERE pml.ServiceOrderID = @serviceOrderId 
+          AND pml.EmployeeID = @employeeId
+          AND pml.AssociateWilling = 1
+      `;
+                const employeeResult = yield pool.request()
+                    .input('serviceOrderId', mssql_1.default.Int, serviceOrderId)
+                    .input('employeeId', mssql_1.default.Int, employeeId)
+                    .query(employeeQuery);
+                console.log('Employee willingness check result:', employeeResult.recordset);
+                if (employeeResult.recordset.length === 0) {
+                    console.log('❌ Employee not willing or not found - checking if employee exists in priority matching');
+                    const employeeExistsQuery = `
+          SELECT pml.EmployeeID, pml.AssociateWilling, emp.FirstName + ' ' + emp.LastName as EmployeeName
+          FROM PriorityMatchingList pml
+          INNER JOIN Employee emp ON pml.EmployeeID = emp.EmployeeID
+          WHERE pml.ServiceOrderID = @serviceOrderId 
+            AND pml.EmployeeID = @employeeId
+        `;
+                    const employeeExistsResult = yield pool.request()
+                        .input('serviceOrderId', mssql_1.default.Int, serviceOrderId)
+                        .input('employeeId', mssql_1.default.Int, employeeId)
+                        .query(employeeExistsQuery);
+                    console.log('Employee exists check result:', employeeExistsResult.recordset);
+                    if (employeeExistsResult.recordset.length === 0) {
+                        console.log('❌ Employee not found in priority matching list');
+                        res.status(400).json({
+                            success: false,
+                            message: `Employee #${employeeId} is not in the priority matching list for Service Order #${serviceOrderId}`
+                        });
+                    }
+                    else {
+                        const employeeData = employeeExistsResult.recordset[0];
+                        console.log('❌ Employee found but not willing:', employeeData);
+                        res.status(400).json({
+                            success: false,
+                            message: `Employee ${employeeData.EmployeeName} is not willing for Service Order #${serviceOrderId}. Current willingness: ${employeeData.AssociateWilling}`
+                        });
+                    }
+                    return;
+                }
+                const employee = employeeResult.recordset[0];
+                console.log('✅ Employee found and willing:', employee);
+                // Step 7: Start database transaction
+                console.log('Step 7: Starting database transaction');
+                const transaction = new mssql_1.default.Transaction(pool);
+                yield transaction.begin();
+                console.log('✅ Transaction started');
+                try {
+                    // Step 8: Update service order
+                    console.log('Step 8: Updating service order');
+                    const updateQuery = `
+          UPDATE ServiceOrder 
+          SET AssignedToResource = @employeeId,
+              SOState = 'Assigned'
+          WHERE ServiceOrderID = @serviceOrderId
+        `;
+                    const updateResult = yield transaction.request()
+                        .input('serviceOrderId', mssql_1.default.Int, serviceOrderId)
+                        .input('employeeId', mssql_1.default.Int, employeeId)
+                        .query(updateQuery);
+                    console.log('Service order update result:', updateResult);
+                    console.log('✅ Service order updated successfully');
+                    // Step 9: Get allocation ID and required date
+                    console.log('Step 9: Getting next allocation ID and required date');
+                    const allocationIdQuery = `SELECT ISNULL(MAX(AllocationID), 0) + 1 as NextAllocationID FROM Allocation`;
+                    const allocationIdResult = yield transaction.request().query(allocationIdQuery);
+                    const nextAllocationId = allocationIdResult.recordset[0].NextAllocationID;
+                    console.log('Next AllocationID:', nextAllocationId);
+                    const requiredFromQuery = `SELECT RequiredFrom FROM ServiceOrder WHERE ServiceOrderID = @serviceOrderId`;
+                    const requiredFromResult = yield transaction.request()
+                        .input('serviceOrderId', mssql_1.default.Int, serviceOrderId)
+                        .query(requiredFromQuery);
+                    const requiredFromDate = requiredFromResult.recordset[0].RequiredFrom;
+                    console.log('Required From Date:', requiredFromDate);
+                    // Step 10: Insert allocation record
+                    console.log('Step 10: Inserting allocation record');
+                    const allocationQuery = `
+          INSERT INTO Allocation (AllocationID, EmployeeID, ServiceOrderID, AllocationStartDate, AllocationEndDate, Status)
+          VALUES (@allocationId, @employeeId, @serviceOrderId, @allocationStartDate, NULL, 'Active')
+        `;
+                    const allocationResult = yield transaction.request()
+                        .input('allocationId', mssql_1.default.Int, nextAllocationId)
+                        .input('serviceOrderId', mssql_1.default.Int, serviceOrderId)
+                        .input('employeeId', mssql_1.default.Int, employeeId)
+                        .input('allocationStartDate', mssql_1.default.DateTime, requiredFromDate)
+                        .query(allocationQuery);
+                    console.log('Allocation insert result:', allocationResult);
+                    console.log('✅ Allocation record inserted successfully');
+                    // Step 11: Update employee availability
+                    console.log('Step 11: Updating employee availability');
+                    const updateEmployeeQuery = `
+          UPDATE Employee
+          SET AvailableForDeployment = 0
+          WHERE EmployeeID = @employeeId
+        `;
+                    const updateEmployeeResult = yield transaction.request()
+                        .input('employeeId', mssql_1.default.Int, employeeId)
+                        .query(updateEmployeeQuery);
+                    console.log('Employee update result:', updateEmployeeResult);
+                    console.log('✅ Employee availability updated successfully');
+                    // Step 12: Commit transaction
+                    console.log('Step 12: Committing transaction');
+                    yield transaction.commit();
+                    console.log('✅ Transaction committed successfully');
+                    console.log('=== ALLOCATION SUCCESS ===');
+                    res.json({
+                        success: true,
+                        message: `Successfully allocated ${employee.EmployeeName} to Service Order #${serviceOrderId}`,
+                        data: {
+                            serviceOrderId,
+                            employeeId,
+                            employeeName: employee.EmployeeName,
+                            allocationId: nextAllocationId,
+                            status: 'Assigned'
+                        }
+                    });
+                }
+                catch (transactionError) {
+                    console.log('❌ Transaction error occurred:', transactionError);
+                    console.log('Rolling back transaction...');
+                    try {
+                        yield transaction.rollback();
+                        console.log('✅ Transaction rolled back successfully');
+                    }
+                    catch (rollbackError) {
+                        console.log('❌ Rollback failed:', rollbackError);
+                    }
+                    throw transactionError;
+                }
+            }
+            catch (error) {
+                console.log('=== ALLOCATION ERROR ===');
+                console.error('Error allocating resource to service order:', error);
+                console.error('Error type:', typeof error);
+                console.error('Error name:', error instanceof Error ? error.name : 'Unknown');
+                console.error('Error message:', error instanceof Error ? error.message : 'Unknown error');
+                console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace');
+                console.error('Request body was:', req.body);
+                res.status(500).json({
+                    success: false,
+                    message: 'Failed to allocate resource',
+                    error: error instanceof Error ? error.message : 'Unknown error',
+                    errorType: error instanceof Error ? error.name : 'Unknown',
+                    details: process.env.NODE_ENV === 'development' ? (error instanceof Error ? error.stack : error) : undefined
+                });
+            }
+        });
+    }
+}
+exports.PriorityMatchingController = PriorityMatchingController;
