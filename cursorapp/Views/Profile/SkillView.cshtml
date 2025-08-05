@@ -1,0 +1,298 @@
+@model LoginApp.Controllers.SkillViewViewModel
+@{
+    ViewData["Title"] = "Skills View";
+}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - Login App</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .skills-container {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+            margin-top: 30px;
+            padding: 40px;
+            max-width: 1200px;
+        }
+        .skills-header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        .skills-icon {
+            font-size: 4rem;
+            color: #667eea;
+            margin-bottom: 20px;
+        }
+        .skill-card {
+            border: 1px solid #e9ecef;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 25px;
+            transition: all 0.3s ease;
+            background: #f8f9fa;
+            height: 100%;
+        }
+        .skill-card:hover {
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+            transform: translateY(-3px);
+            border-color: #667eea;
+        }
+        .skill-icon {
+            font-size: 2.5rem;
+            color: #667eea;
+            margin-bottom: 20px;
+        }
+        .skill-name {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 10px;
+        }
+        .skill-description {
+            color: #666;
+            line-height: 1.6;
+            margin-bottom: 20px;
+        }
+        .rating-form {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 15px;
+        }
+        .rating-badge {
+            display: inline-block;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+        .rating-1 { background-color: #dc3545; color: white; }
+        .rating-2 { background-color: #fd7e14; color: white; }
+        .rating-3 { background-color: #ffc107; color: black; }
+        .rating-4 { background-color: #20c997; color: white; }
+        .rating-5 { background-color: #198754; color: white; }
+        .back-button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            border-radius: 25px;
+            padding: 10px 25px;
+            font-weight: 600;
+            color: white;
+        }
+        .back-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+        .no-skills {
+            text-align: center;
+            padding: 60px 20px;
+        }
+        .no-skills-icon {
+            font-size: 5rem;
+            color: #ccc;
+            margin-bottom: 20px;
+        }
+        .form-control, .form-select {
+            border-radius: 8px;
+            border: 1px solid #ced4da;
+        }
+        .form-control:focus, .form-select:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+        }
+        .btn-rate {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            border-radius: 8px;
+            padding: 8px 20px;
+            font-weight: 600;
+            color: white;
+        }
+        .btn-rate:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-12">
+                <div class="skills-container">
+                    <div class="skills-header">
+                        <div class="skills-icon">
+                            <i class="fas fa-tools"></i>
+                        </div>
+                        <h1>Rate Your Skills</h1>
+                        <p class="text-muted">Select skills and rate your proficiency level</p>
+                    </div>
+
+                    @if (Model.Skills.Any())
+                    {
+                        <div class="row">
+                            @foreach (var skill in Model.Skills)
+                            {
+                                var existingRating = Model.ExistingEmployeeSkills.FirstOrDefault(es => es.SkillID == skill.SkillID);
+                                
+                                <div class="col-md-6 col-lg-4 mb-4">
+                                    <div class="skill-card text-center">
+                                        <div class="skill-icon">
+                                            <i class="fas fa-code"></i>
+                                        </div>
+                                        <div class="skill-name">@skill.SkillName</div>
+                                        @if (!string.IsNullOrEmpty(skill.SkillDescription))
+                                        {
+                                            <div class="skill-description">@skill.SkillDescription</div>
+                                        }
+                                        else
+                                        {
+                                            <div class="skill-description text-muted">No description available</div>
+                                        }
+
+                                        @if (existingRating != null)
+                                        {
+                                            <div class="rating-badge rating-@existingRating.EmployeeRatedSkillLevel">
+                                                Level @existingRating.EmployeeRatedSkillLevel
+                                            </div>
+                                            <small class="text-muted">
+                                                @existingRating.YearsOfExperience years experience<br>
+                                                Last worked: @existingRating.EmployeeLastWorkedOnThisSkill?.ToString("MMM dd, yyyy")
+                                            </small>
+                                        }
+
+                                        <div class="rating-form">
+                                            <form class="skill-rating-form" data-skill-id="@skill.SkillID">
+                                                <div class="mb-3">
+                                                    <label class="form-label">Skill Level (1-5)</label>
+                                                    <select class="form-select skill-level" required>
+                                                        <option value="">Select Level</option>
+                                                        <option value="1">1 - Beginner</option>
+                                                        <option value="2">2 - Basic</option>
+                                                        <option value="3">3 - Intermediate</option>
+                                                        <option value="4">4 - Advanced</option>
+                                                        <option value="5">5 - Expert</option>
+                                                    </select>
+                                                </div>
+                                                <div class="mb-3">
+                                                    <label class="form-label">Years of Experience</label>
+                                                    <input type="number" class="form-control years-experience" min="0" max="50" required>
+                                                </div>
+                                                <div class="mb-3">
+                                                    <label class="form-label">Last Worked On</label>
+                                                    <input type="date" class="form-control last-worked-date" required>
+                                                </div>
+                                                <button type="submit" class="btn btn-rate w-100">
+                                                    <i class="fas fa-save me-2"></i>Save Rating
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="no-skills">
+                            <div class="no-skills-icon">
+                                <i class="fas fa-info-circle"></i>
+                            </div>
+                            <h3 class="text-muted">No Skills Available</h3>
+                            <p class="text-muted">No skills are currently available in the database.</p>
+                            <p class="text-muted">Please contact the administrator to add skills to the [Skill] table.</p>
+                        </div>
+                    }
+
+                    <div class="text-center mt-5">
+                        @* <a href="/Home" class="btn btn-primary back-button">
+                            <i class="fas fa-arrow-left me-2"></i>Back to Home
+                        </a> *@
+                        <a href="/" class="btn btn-primary back-button">
+                            <i class="fas fa-arrow-left me-2"></i>Back to Home
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Set default date to today
+        document.querySelectorAll('.last-worked-date').forEach(input => {
+            input.value = new Date().toISOString().split('T')[0];
+        });
+
+        // Handle form submissions
+        document.querySelectorAll('.skill-rating-form').forEach(form => {
+            form.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const skillId = this.dataset.skillId;
+                const skillLevel = this.querySelector('.skill-level').value;
+                const yearsExperience = this.querySelector('.years-experience').value;
+                const lastWorkedDate = this.querySelector('.last-worked-date').value;
+                
+                if (!skillLevel || !yearsExperience || !lastWorkedDate) {
+                    alert('Please fill in all fields');
+                    return;
+                }
+
+                // Send AJAX request
+                fetch('/Profile/RateSkill', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: `skillId=${skillId}&skillLevel=${skillLevel}&yearsOfExperience=${yearsExperience}&lastWorkedDate=${lastWorkedDate}`
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Show success message
+                        showAlert('success', data.message);
+                        
+                        // Reload page after a short delay to show updated ratings
+                        setTimeout(() => {
+                            location.reload();
+                        }, 1500);
+                    } else {
+                        showAlert('danger', data.message);
+                    }
+                })
+                .catch(error => {
+                    showAlert('danger', 'Error saving skill rating');
+                });
+            });
+        });
+
+        function showAlert(type, message) {
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
+            alertDiv.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+            alertDiv.innerHTML = `
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            
+            document.body.appendChild(alertDiv);
+            
+            // Auto-remove after 3 seconds
+            setTimeout(() => {
+                alertDiv.remove();
+            }, 3000);
+        }
+    </script>
+</body>
+</html> 
