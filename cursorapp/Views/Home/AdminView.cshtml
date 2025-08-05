@@ -60,6 +60,7 @@
                                 <thead>
                                     <tr>
                                         <th>Employee ID</th>
+                                        <th>Full Name</th>
                                         <th>Skill</th>
                                         <th>Employee Rated Level</th>
                                         <th>Years of Exp</th>
@@ -71,6 +72,7 @@
                                     {
                                         <tr>
                                             <td>@Model.Ratings[i].EmployeeID</td>
+                                            <td>@(Model.Ratings[i].FirstName + " " + Model.Ratings[i].LastName)</td>
                                             <td>@(allSkills?.FirstOrDefault(s => s.SkillID == Model.Ratings[i].SkillID)?.SkillName ?? Model.Ratings[i].SkillID.ToString())</td>
                                             <td>@Model.Ratings[i].EmployeeRatedSkillLevel</td>
                                             <td>@Model.Ratings[i].YearsOfExperience</td>
@@ -104,13 +106,16 @@
                                 <i class="fas fa-sign-out-alt me-2"></i>Logout-Admin
                             </button>
                         </form> *@
-                        <form action="/Account/Logout" method="post">
-                            <button type="submit" class="btn btn-danger">
-                                <i class="fas fa-sign-out-alt me-2"></i>Logout
-                            </button>
-                        </form>
-
-
+                        <div class="d-flex justify-content-center gap-3">
+                            <a href="/Home/Index" class="btn btn-primary">
+                                <i class="fas fa-home me-2"></i>Home
+                            </a>
+                            <form action="/Account/Logout" method="post" style="display: inline;">
+                                <button type="submit" class="btn btn-danger">
+                                    <i class="fas fa-sign-out-alt me-2"></i>Logout
+                                </button>
+                            </form>
+                        </div>
                     </div>
                 </div>
             </div>

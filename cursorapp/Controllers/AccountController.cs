@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 using LoginApp.Data;
 using LoginApp.Models;
+using System;
 
 namespace LoginApp.Controllers
 {
@@ -50,9 +51,16 @@ namespace LoginApp.Controllers
             
             if (employee != null)
             {
+
+                // Set EmployeeID and SupervisorID in session and AppConstants
+                HttpContext.Session.SetInt32("EmployeeID", employee.EmployeeID);
+                HttpContext.Session.SetInt32("SupervisorID", employee.SupervisorID.Value);
+                AppConstants.EmployeeID = employee.EmployeeID;
+                AppConstants.SupervisorID = employee.SupervisorID.Value;
+
                 // Check if user is admin
                 bool isAdmin = _dataAccess.IsUserAdmin(employee.EmployeeID);
-                
+
                 var claims = new List<Claim>
                 {
                     new Claim(ClaimTypes.Name, employee.EmailID),
@@ -63,10 +71,6 @@ namespace LoginApp.Controllers
                 };
 
                 // Add department claim if available
-                if (!string.IsNullOrEmpty(employee.Department))
-                {
-                    claims.Add(new Claim("Department", employee.Department));
-                }
 
                 var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
                 var authProperties = new AuthenticationProperties
@@ -83,10 +87,12 @@ namespace LoginApp.Controllers
                 // Redirect based on role
                 if (isAdmin)
                 {
-                    return RedirectToAction("AdminView", "Home");
+                    HttpContext.Session.SetInt32("SupervisorID", employee.EmployeeID);
+                    return RedirectToAction("Index", "Home");
+                    // return RedirectToAction("AdminView", "Home");
                 }
-                else
-                {
+                // else
+                // {
                     if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
                     {
                         return Redirect(returnUrl);
@@ -95,7 +101,7 @@ namespace LoginApp.Controllers
                     {
                         return RedirectToAction("Index", "Home");
                     }
-                }
+                // }
             }
 
             ModelState.AddModelError(string.Empty, "Invalid email or password.");

@@ -23,12 +23,10 @@ namespace LoginApp.Controllers
         [Authorize(Roles = "Admin")]
         public IActionResult AdminView()
         {
-            //101 is supriser 
-            var pendingSkills = _dataAccess.GetAllReportingEmployeeSkills(AppConstants.SupervisorID)
+            // Get SupervisorID from session if available
+            int supervisorId = HttpContext.Session.GetInt32("SupervisorID") ?? 0;
+            var pendingSkills = _dataAccess.GetAllReportingEmployeeSkills(supervisorId)
                .FindAll(s => s.SupervisorRatedSkillLevel == null);
-
-            //var pendingSkills = _dataAccess.GetEmployeeSkills(101)
-            //    .FindAll(s => s.SupervisorRatedSkillLevel == null);
             var allSkills = _dataAccess.GetSkills();
             ViewBag.AllSkills = allSkills;
             var vm = new AdminSkillRatingsViewModel { Ratings = pendingSkills };

@@ -45,5 +45,10 @@ namespace LoginApp.Models
         
         // Navigation property
         public Skill Skill { get; set; } = null!;
+
+        [NotMapped]
+        public string? FirstName { get; set; }
+        [NotMapped]
+        public string? LastName { get; set; }
     }
 } 

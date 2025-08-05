@@ -114,6 +114,20 @@
                                 </div>
                             </div>
                         </div>
+                        @if (User.IsInRole("Admin"))
+                        {
+                        <div class="col-md-12">
+                            <a href="/Home/AdminView" style="text-decoration: none; color: inherit;">
+                                <div class="card mb-3 bg-success bg-opacity-10 border-success">
+                                    <div class="card-body text-center">
+                                        <i class="fas fa-users-cog fa-3x text-success mb-3"></i>
+                                        <h5 class="card-title">Approve Subordinate Skills</h5>
+                                        <p class="card-text">You have reportees. Click here to approve their skill ratings.</p>
+                                    </div>
+                                </div>
+                            </a>
+                        </div>
+                        }
                     </div>
 
                    

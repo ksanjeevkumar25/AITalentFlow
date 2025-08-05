@@ -27,8 +27,9 @@ namespace LoginApp.Controllers
         {
             // Get all skills from the Skill table (singular)
             var skills = _dataAccess.GetSkills();
-            // Get existing employee skills for EmployeeID 102
-            var existingEmployeeSkills = _dataAccess.GetEmployeeSkills(AppConstants.EmployeeID);
+            // Get EmployeeID from session if available
+            int employeeId = HttpContext.Session.GetInt32("EmployeeID") ?? AppConstants.EmployeeID;
+            var existingEmployeeSkills = _dataAccess.GetEmployeeSkills(employeeId);
             var viewModel = new SkillViewViewModel
             {
                 Skills = skills,
@@ -89,6 +90,7 @@ namespace LoginApp.Controllers
         [HttpPost]
         public async Task<IActionResult> UploadResume(IFormFile resume)
         {
+            
             if (resume == null || resume.Length == 0)
             {
                 ModelState.AddModelError("Resume", "Please select a file.");
