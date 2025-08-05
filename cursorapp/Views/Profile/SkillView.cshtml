@@ -35,9 +35,9 @@
         }
         .skill-card {
             border: 1px solid #e9ecef;
-            border-radius: 15px;
-            padding: 25px;
-            margin-bottom: 25px;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 15px;
             transition: all 0.3s ease;
             background: #f8f9fa;
             height: 100%;
@@ -48,34 +48,35 @@
             border-color: #667eea;
         }
         .skill-icon {
-            font-size: 2.5rem;
+            font-size: 1.8rem;
             color: #667eea;
-            margin-bottom: 20px;
+            margin-bottom: 10px;
         }
         .skill-name {
-            font-size: 1.3rem;
+            font-size: 1.1rem;
             font-weight: 600;
             color: #333;
-            margin-bottom: 10px;
+            margin-bottom: 8px;
         }
         .skill-description {
             color: #666;
-            line-height: 1.6;
-            margin-bottom: 20px;
+            line-height: 1.4;
+            margin-bottom: 12px;
+            font-size: 0.9rem;
         }
         .rating-form {
             background: #f8f9fa;
-            border-radius: 10px;
-            padding: 20px;
-            margin-top: 15px;
+            border-radius: 8px;
+            padding: 12px;
+            margin-top: 10px;
         }
         .rating-badge {
             display: inline-block;
-            padding: 5px 15px;
-            border-radius: 20px;
-            font-size: 0.9rem;
+            padding: 3px 10px;
+            border-radius: 15px;
+            font-size: 0.8rem;
             font-weight: 600;
-            margin-bottom: 10px;
+            margin-bottom: 8px;
         }
         .rating-1 { background-color: #dc3545; color: white; }
         .rating-2 { background-color: #fd7e14; color: white; }
@@ -114,14 +115,24 @@
         .btn-rate {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             border: none;
-            border-radius: 8px;
-            padding: 8px 20px;
+            border-radius: 6px;
+            padding: 6px 15px;
             font-weight: 600;
             color: white;
+            font-size: 0.9rem;
         }
         .btn-rate:hover {
             transform: translateY(-1px);
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+        .form-label {
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-bottom: 0.3rem;
+        }
+        .form-control, .form-select {
+            font-size: 0.9rem;
+            padding: 0.4rem 0.75rem;
         }
     </style>
 </head>
@@ -145,7 +156,7 @@
                             {
                                 var existingRating = Model.ExistingEmployeeSkills.FirstOrDefault(es => es.SkillID == skill.SkillID);
                                 
-                                <div class="col-md-6 col-lg-4 mb-4">
+                                <div class="col-md-4 col-lg-3 mb-3">
                                     <div class="skill-card text-center">
                                         <div class="skill-icon">
                                             <i class="fas fa-code"></i>
@@ -173,7 +184,7 @@
 
                                         <div class="rating-form">
                                             <form class="skill-rating-form" data-skill-id="@skill.SkillID">
-                                                <div class="mb-3">
+                                                <div class="mb-2">
                                                     <label class="form-label">Skill Level (1-5)</label>
                                                     <select class="form-select skill-level" required>
                                                         <option value="">Select Level</option>
@@ -184,11 +195,11 @@
                                                         <option value="5">5 - Expert</option>
                                                     </select>
                                                 </div>
-                                                <div class="mb-3">
+                                                <div class="mb-2">
                                                     <label class="form-label">Years of Experience</label>
                                                     <input type="number" class="form-control years-experience" min="0" max="50" required>
                                                 </div>
-                                                <div class="mb-3">
+                                                <div class="mb-2">
                                                     <label class="form-label">Last Worked On</label>
                                                     <input type="date" class="form-control last-worked-date" required>
                                                 </div>
