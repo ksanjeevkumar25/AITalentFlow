@@ -2,11 +2,19 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
+using LoginApp.Data;
+using LoginApp.Models;
 
 namespace LoginApp.Controllers
 {
     public class AccountController : Controller
     {
+        private readonly SqlDataAccess _dataAccess;
+
+        public AccountController()
+        {
+            _dataAccess = new SqlDataAccess();
+        }
         [HttpGet]
         public IActionResult Login(string? returnUrl = null)
         {
@@ -37,54 +45,60 @@ namespace LoginApp.Controllers
         {
             ViewData["ReturnUrl"] = returnUrl;
 
-            // Validate credentials
-            if (username == "admin" && password == "admin123")
+            // Validate credentials against database
+            var employee = _dataAccess.ValidateUserLogin(username, password);
+            
+            if (employee != null)
             {
+                // Check if user is admin
+                bool isAdmin = _dataAccess.IsUserAdmin(employee.EmployeeID);
+                
                 var claims = new List<Claim>
                 {
-                    new Claim(ClaimTypes.Name, username),
-                    new Claim(ClaimTypes.Role, "Admin")
+                    new Claim(ClaimTypes.Name, employee.EmailID),
+                    new Claim(ClaimTypes.NameIdentifier, employee.EmployeeID.ToString()),
+                    new Claim("EmployeeID", employee.EmployeeID.ToString()),
+                    new Claim("FullName", $"{employee.FirstName} {employee.LastName}".Trim()),
+                    new Claim(ClaimTypes.Role, isAdmin ? "Admin" : "User")
                 };
+
+                // Add department claim if available
+                if (!string.IsNullOrEmpty(employee.Department))
+                {
+                    claims.Add(new Claim("Department", employee.Department));
+                }
+
                 var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
                 var authProperties = new AuthenticationProperties
                 {
                     IsPersistent = true,
-                    ExpiresUtc = DateTimeOffset.UtcNow.AddHours(1)
+                    ExpiresUtc = DateTimeOffset.UtcNow.AddHours(8) // Extended session time
                 };
+
                 await HttpContext.SignInAsync(
                     CookieAuthenticationDefaults.AuthenticationScheme,
                     new ClaimsPrincipal(claimsIdentity),
                     authProperties);
-                return RedirectToAction("AdminView", "Home");
-            }
-            else if (username == "demouser" && password == "test123")
-            {
-                var claims = new List<Claim>
+
+                // Redirect based on role
+                if (isAdmin)
                 {
-                    new Claim(ClaimTypes.Name, username),
-                    new Claim(ClaimTypes.Role, "User")
-                };
-                var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
-                var authProperties = new AuthenticationProperties
-                {
-                    IsPersistent = true,
-                    ExpiresUtc = DateTimeOffset.UtcNow.AddHours(1)
-                };
-                await HttpContext.SignInAsync(
-                    CookieAuthenticationDefaults.AuthenticationScheme,
-                    new ClaimsPrincipal(claimsIdentity),
-                    authProperties);
-                if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
-                {
-                    return Redirect(returnUrl);
+                    return RedirectToAction("AdminView", "Home");
                 }
                 else
                 {
-                    return RedirectToAction("Index", "Home");
+                    if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
+                    {
+                        return Redirect(returnUrl);
+                    }
+                    else
+                    {
+                        return RedirectToAction("Index", "Home");
+                    }
                 }
             }
 
-            ModelState.AddModelError(string.Empty, "Invalid username or password.");
+            ModelState.AddModelError(string.Empty, "Invalid email or password.");
             return View();
         }
 
@@ -100,10 +114,11 @@ namespace LoginApp.Controllers
             return View();
         }
 
-        private bool IsValidUser(string username, string password)
+        private bool IsValidUser(string emailId, string password)
         {
-            // Hardcoded credentials as requested
-            return username == "demouser" && password == "test123";
+            // Database validation instead of hardcoded credentials
+            var employee = _dataAccess.ValidateUserLogin(emailId, password);
+            return employee != null;
         }
     }
 }

@@ -252,5 +252,97 @@ namespace LoginApp.Data
         //        cmd.ExecuteNonQuery();
         //    }
         //}
+
+        // Authentication methods
+        public Employee? ValidateUserLogin(string emailId, string password)
+        {
+            using (var conn = new SqlConnection(_connectionString))
+            {
+                var query = @"
+                    SELECT e.EmployeeID, e.EmailID, e.FirstName, e.LastName, e.Department, e.SupervisorID
+                    FROM Employee e
+                    INNER JOIN Users u ON e.EmployeeID = u.EmployeeID
+                    WHERE e.EmailID = @EmailID AND u.Password = @Password";
+
+                using (var cmd = new SqlCommand(query, conn))
+                {
+                    cmd.Parameters.AddWithValue("@EmailID", emailId);
+                    cmd.Parameters.AddWithValue("@Password", password);
+                    
+                    conn.Open();
+                    using (var reader = cmd.ExecuteReader())
+                    {
+                        if (reader.Read())
+                        {
+                            return new Employee
+                            {
+                                EmployeeID = reader.GetInt32("EmployeeID"),
+                                EmailID = reader.GetString("EmailID"),
+                                FirstName = reader.IsDBNull("FirstName") ? null : reader.GetString("FirstName"),
+                                LastName = reader.IsDBNull("LastName") ? null : reader.GetString("LastName"),
+                                Department = reader.IsDBNull("Department") ? null : reader.GetString("Department"),
+                                SupervisorID = reader.IsDBNull("SupervisorID") ? null : reader.GetInt32("SupervisorID")
+                            };
+                        }
+                    }
+                }
+            }
+            return null;
+        }
+
+        public Employee? GetEmployeeByEmailId(string emailId)
+        {
+            using (var conn = new SqlConnection(_connectionString))
+            {
+                var query = @"
+                    SELECT EmployeeID, EmailID, FirstName, LastName, Department, SupervisorID
+                    FROM Employee
+                    WHERE EmailID = @EmailID";
+
+                using (var cmd = new SqlCommand(query, conn))
+                {
+                    cmd.Parameters.AddWithValue("@EmailID", emailId);
+                    
+                    conn.Open();
+                    using (var reader = cmd.ExecuteReader())
+                    {
+                        if (reader.Read())
+                        {
+                            return new Employee
+                            {
+                                EmployeeID = reader.GetInt32("EmployeeID"),
+                                EmailID = reader.GetString("EmailID"),
+                                FirstName = reader.IsDBNull("FirstName") ? null : reader.GetString("FirstName"),
+                                LastName = reader.IsDBNull("LastName") ? null : reader.GetString("LastName"),
+                                Department = reader.IsDBNull("Department") ? null : reader.GetString("Department"),
+                                SupervisorID = reader.IsDBNull("SupervisorID") ? null : reader.GetInt32("SupervisorID")
+                            };
+                        }
+                    }
+                }
+            }
+            return null;
+        }
+
+        public bool IsUserAdmin(int employeeId)
+        {
+            // You can implement admin role checking logic here
+            // For now, checking if user has SupervisorID as null (top-level) or specific admin roles
+            using (var conn = new SqlConnection(_connectionString))
+            {
+                var query = @"
+                    SELECT COUNT(*) 
+                    FROM Employee 
+                    WHERE EmployeeID = @EmployeeID AND SupervisorID IS NULL";
+
+                using (var cmd = new SqlCommand(query, conn))
+                {
+                    cmd.Parameters.AddWithValue("@EmployeeID", employeeId);
+                    conn.Open();
+                    var count = (int)cmd.ExecuteScalar();
+                    return count > 0;
+                }
+            }
+        }
     }
 }
