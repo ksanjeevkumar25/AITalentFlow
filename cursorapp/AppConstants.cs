@@ -2,8 +2,8 @@
 {
     public class AppConstants
     {
-        public static int EmployeeID = 102; // Employee ID for the current user
-
-        public static int SupervisorID = 101; // Employee ID for the current user
+        // These will be set after login based on the logged-in employee's data
+        public static int EmployeeID { get; set; }
+        public static int SupervisorID { get; set; }
     }
 }

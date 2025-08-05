@@ -38,7 +38,12 @@ namespace LoginApp.Data
         {
             var list = new List<EmployeeSkills>();
             using (var conn = new SqlConnection(_connectionString))
-            using (var cmd = new SqlCommand("SELECT * FROM EmployeeSkills where EmployeeID in (select [EmployeeID] from [Employee] where [SupervisorID] = @EmployeeID)", conn))
+            using (var cmd = new SqlCommand(@"
+                SELECT es.*, e.FirstName, e.LastName
+                FROM EmployeeSkills es
+                INNER JOIN Employee e ON es.EmployeeID = e.EmployeeID
+                WHERE es.EmployeeID IN (SELECT [EmployeeID] FROM [Employee] WHERE [SupervisorID] = @EmployeeID)
+            ", conn))
             {
                 cmd.Parameters.AddWithValue("@EmployeeID", employeeId);
                 conn.Open();
@@ -59,7 +64,9 @@ namespace LoginApp.Data
                             AIEvaluatedScore = reader["AIEvaluatedScore"] as int?,
                             AIEvaluationDate = reader["AIEvaluationDate"] as DateTime?,
                             AIEvaluationRemarks = reader["AIEvaluationRemarks"] as string,
-                            EmployeeLastWorkedOnThisSkill = reader["EmployeeLastWorkedOnThisSkill"] as DateTime?
+                            EmployeeLastWorkedOnThisSkill = reader["EmployeeLastWorkedOnThisSkill"] as DateTime?,
+                            FirstName = reader["FirstName"] as string,
+                            LastName = reader["LastName"] as string
                         });
                     }
                 }
@@ -259,7 +266,7 @@ namespace LoginApp.Data
             using (var conn = new SqlConnection(_connectionString))
             {
                 var query = @"
-                    SELECT e.EmployeeID, e.EmailID, e.FirstName, e.LastName, e.Department, e.SupervisorID
+                    SELECT e.EmployeeID, e.EmailID, e.FirstName, e.LastName, e.SupervisorID
                     FROM Employee e
                     INNER JOIN Users u ON e.EmployeeID = u.EmployeeID
                     WHERE e.EmailID = @EmailID AND u.Password = @Password";
@@ -280,7 +287,7 @@ namespace LoginApp.Data
                                 EmailID = reader.GetString("EmailID"),
                                 FirstName = reader.IsDBNull("FirstName") ? null : reader.GetString("FirstName"),
                                 LastName = reader.IsDBNull("LastName") ? null : reader.GetString("LastName"),
-                                Department = reader.IsDBNull("Department") ? null : reader.GetString("Department"),
+                                // Department = reader.IsDBNull("Department") ? null : reader.GetString("Department"),
                                 SupervisorID = reader.IsDBNull("SupervisorID") ? null : reader.GetInt32("SupervisorID")
                             };
                         }
@@ -295,7 +302,7 @@ namespace LoginApp.Data
             using (var conn = new SqlConnection(_connectionString))
             {
                 var query = @"
-                    SELECT EmployeeID, EmailID, FirstName, LastName, Department, SupervisorID
+                    SELECT EmployeeID, EmailID, FirstName, LastName, SupervisorID
                     FROM Employee
                     WHERE EmailID = @EmailID";
 
@@ -314,7 +321,7 @@ namespace LoginApp.Data
                                 EmailID = reader.GetString("EmailID"),
                                 FirstName = reader.IsDBNull("FirstName") ? null : reader.GetString("FirstName"),
                                 LastName = reader.IsDBNull("LastName") ? null : reader.GetString("LastName"),
-                                Department = reader.IsDBNull("Department") ? null : reader.GetString("Department"),
+                                // Department = reader.IsDBNull("Department") ? null : reader.GetString("Department"),
                                 SupervisorID = reader.IsDBNull("SupervisorID") ? null : reader.GetInt32("SupervisorID")
                             };
                         }
@@ -326,14 +333,13 @@ namespace LoginApp.Data
 
         public bool IsUserAdmin(int employeeId)
         {
-            // You can implement admin role checking logic here
-            // For now, checking if user has SupervisorID as null (top-level) or specific admin roles
+            // Return true if the employee has reportees (is a supervisor)
             using (var conn = new SqlConnection(_connectionString))
             {
                 var query = @"
                     SELECT COUNT(*) 
                     FROM Employee 
-                    WHERE EmployeeID = @EmployeeID AND SupervisorID IS NULL";
+                    WHERE SupervisorID = @EmployeeID";
 
                 using (var cmd = new SqlCommand(query, conn))
                 {
