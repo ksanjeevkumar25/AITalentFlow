@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const BASE_URL = 'http://localhost:3000';
+const BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3000';
 
 export const register = (data: any) => axios.post(`${BASE_URL}/evaluate`, data);
 export const fetchQuestions = (data: any) => axios.post(`${BASE_URL}/questions/fetchQuestions`, data);

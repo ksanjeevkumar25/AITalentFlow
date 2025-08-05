@@ -11,9 +11,10 @@
     {
       "label": "Run Azure Functions Locally",
       "type": "shell",
-      "command": "func start",
+      "command": "func start --port 7198",
       "group": "build",
-      "problemMatcher": []
+      "problemMatcher": [],
+      "isBackground": true
     }
   ]
 }

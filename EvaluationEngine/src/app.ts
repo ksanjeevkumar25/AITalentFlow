@@ -8,6 +8,8 @@ import cors from 'cors';
 import bodyParser from 'body-parser';
 import { setEvaluationRoutes } from './routes/evaluationRoutes';
 import { setQuestionRoutes } from './routes/questionRoutes';
+import { setPriorityMatchingRoutes } from './routes/priorityMatchingRoutes';
+import { setServiceOrderRoutes } from './routes/serviceOrderRoutes';
 import swaggerUi from 'swagger-ui-express';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -19,6 +21,55 @@ app.use(cors({ origin: frontendUrl, credentials: true }));
 const PORT = process.env.PORT || 3000;
 
 app.use(bodyParser.json());
+
+// Health check endpoint
+app.get('/health', (req, res) => {
+    res.json({ 
+        success: true, 
+        message: 'Server is running',
+        timestamp: new Date().toISOString()
+    });
+});
+
+// Database health check endpoint
+app.get('/health/db', async (req, res) => {
+    try {
+        const pool = await sql.connect(dbConfig);
+        await pool.request().query('SELECT 1 as test');
+        res.json({ 
+            success: true, 
+            message: 'Database connection successful',
+            timestamp: new Date().toISOString()
+        });
+    } catch (error) {
+        res.status(500).json({ 
+            success: false, 
+            message: 'Database connection failed',
+            error: error instanceof Error ? error.message : 'Unknown error',
+            timestamp: new Date().toISOString()
+        });
+    }
+});
+
+// Debug endpoint to list employees
+app.get('/debug/employees', async (req, res) => {
+    try {
+        const pool = await sql.connect(dbConfig);
+        const result = await pool.request().query('SELECT TOP 10 EmployeeID, FirstName, LastName, EmailID FROM Employee');
+        res.json({ 
+            success: true, 
+            data: result.recordset,
+            count: result.recordset.length
+        });
+    } catch (error) {
+        res.status(500).json({ 
+            success: false, 
+            message: 'Failed to fetch employees',
+            error: error instanceof Error ? error.message : 'Unknown error'
+        });
+    }
+});
+
 // Login endpoint
 app.post('/login', async (req, res) => {
     const { email, password } = req.body;
@@ -140,6 +191,8 @@ app.use(bodyParser.urlencoded({ extended: true }));
 
 setEvaluationRoutes(app);
 setQuestionRoutes(app);
+setPriorityMatchingRoutes(app);
+setServiceOrderRoutes(app);
 
 // Swagger setup
 const swaggerPath = path.join(__dirname, 'swagger.json');
