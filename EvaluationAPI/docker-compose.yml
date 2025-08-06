@@ -1,0 +1,51 @@
+version: '3.8'
+
+services:
+  # FastAPI Application
+  interview-api:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      - PYTHONPATH=/app
+      - DATABASE_HOST=20.0.97.202\SQLDemo
+      - DATABASE_NAME=TestDB
+      - DATABASE_USER=sa
+      - DATABASE_PASSWORD=Sanjeev@1234
+    volumes:
+      # Mount source code for development (comment out for production)
+      - .:/app
+      # Mount for temporary file uploads
+      - ./temp:/app/temp
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/system-status"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - interview-network
+
+  # Optional: SQL Server (for local development)
+  # Uncomment if you want to run SQL Server locally instead of connecting to remote
+  # sqlserver:
+  #   image: mcr.microsoft.com/mssql/server:2022-latest
+  #   environment:
+  #     - ACCEPT_EULA=Y
+  #     - SA_PASSWORD=YourStrong@Passw0rd
+  #     - MSSQL_PID=Express
+  #   ports:
+  #     - "1433:1433"
+  #   volumes:
+  #     - sqlserver_data:/var/opt/mssql
+  #   networks:
+  #     - interview-network
+
+networks:
+  interview-network:
+    driver: bridge
+
+volumes:
+  # Uncomment if using local SQL Server
+  # sqlserver_data: 
