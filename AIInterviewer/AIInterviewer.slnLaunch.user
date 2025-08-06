@@ -1,0 +1,15 @@
+[
+  {
+    "Name": "New Profile",
+    "Projects": [
+      {
+        "Path": "AIInterviewer.API\\AIInterviewer.API.csproj",
+        "Action": "Start"
+      },
+      {
+        "Path": "AIInterviewer.UI\\AIInterviewer.UI.csproj",
+        "Action": "Start"
+      }
+    ]
+  }
+]
