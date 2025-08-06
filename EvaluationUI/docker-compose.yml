@@ -1,0 +1,41 @@
+version: '3.8'
+
+services:
+  interviewui:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: interviewui-app
+    ports:
+      - "3000:80"
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+    networks:
+      - interview-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Optional: Add your backend API service here
+  # api:
+  #   image: your-backend-image:latest
+  #   container_name: interviewui-api
+  #   ports:
+  #     - "8000:8000"
+  #   environment:
+  #     - DATABASE_URL=your-database-url
+  #   networks:
+  #     - interview-network
+  #   restart: unless-stopped
+
+networks:
+  interview-network:
+    driver: bridge
+
+# Optional: Add volumes for data persistence
+# volumes:
+#   api-data: 
