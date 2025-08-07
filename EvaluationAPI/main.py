@@ -12,8 +12,8 @@ import base64
 import requests
 
 # Import database operations
-from database import fetch_employees_from_database, fetch_employees_from_database, get_database_info, fetch_employee_basic_info
-from databaseOwn import fetch_employees_from_databaseOwn, fetch_serviceorder_from_databaseOwn, insert_evaluation_to_databaseOwn, fetch_evaluation_schedule_by_status, update_evaluation_schedule_status
+#from database import fetch_employees_from_database, fetch_employees_from_database, get_database_info, fetch_employee_basic_info
+from databaseOwn import fetch_employees_from_databaseOwn, fetch_serviceorder_from_databaseOwn, insert_evaluation_to_databaseOwn, fetch_evaluation_schedule_by_status, update_evaluation_schedule_status, fetch_evaluation_schedule_by_ids
 
 # Import standard-aifc to replace the problematic built-in aifc module
 try:
@@ -609,7 +609,7 @@ def get_question_answers(input_string: str):
     """
     try:
         # External API URL
-        external_api_url = "/api/Interview/extract-qa"
+        external_api_url = "https://10.3.0.4:58654/api/Interview/extract-qa"
         
         # Prepare the request payload
         payload = {
@@ -712,6 +712,59 @@ def update_evaluation_schedule_status_endpoint(update_request: UpdateEvaluationS
             }
         }
 
+@app.get("/getEvaluationScheduleStatus")
+def get_evaluation_schedule_status(service_order_id: int, employee_id: int):
+    """
+    Retrieves evaluation schedule status from the EvaluationScheduleStatus table.
+    Fetches the record that matches the provided ServiceOrderID and EmployeeID.
+    Query parameters: service_order_id (required), employee_id (required)
+    """
+    try:
+        # Call the database function to fetch the evaluation schedule
+        evaluation_schedule, source_info = fetch_evaluation_schedule_by_ids(
+            service_order_id=service_order_id,
+            employee_id=employee_id
+        )
+        
+        # Check if record was found
+        if evaluation_schedule:
+            return {
+                "status": "success",
+                "message": "Evaluation schedule retrieved successfully",
+                "data": evaluation_schedule,
+                "query_parameters": {
+                    "service_order_id": service_order_id,
+                    "employee_id": employee_id
+                },
+                **source_info  # Unpack source_info (source, note, error, etc.)
+            }
+        else:
+            return {
+                "status": "not_found",
+                "message": f"No evaluation schedule found for ServiceOrderID: {service_order_id}, EmployeeID: {employee_id}",
+                "data": None,
+                "query_parameters": {
+                    "service_order_id": service_order_id,
+                    "employee_id": employee_id
+                },
+                **source_info
+            }
+        
+    except Exception as e:
+        error_message = str(e)
+        print(f"❌ Error in getEvaluationScheduleStatus endpoint: {error_message}")
+        
+        # Return error response
+        return {
+            "status": "error",
+            "message": f"Failed to retrieve evaluation schedule status: {error_message}",
+            "data": None,
+            "query_parameters": {
+                "service_order_id": service_order_id,
+                "employee_id": employee_id
+            }
+        }
+
 @app.get("/system-status")
 def get_system_status():
     """
@@ -759,6 +812,7 @@ def get_system_status():
             "pendingEvaluations": "/pendingEvaluations",
             "getQuestionAnswers": "/getQuestionAnswers?input_string=<text>",
             "updateEvaluationScheduleStatus": "/updateEvaluationScheduleStatus (POST)",
+            "getEvaluationScheduleStatus": "/getEvaluationScheduleStatus?service_order_id=<id>&employee_id=<id>",
             "video_analysis": "/analyze-video",
             "system_status": "/system-status"
         },
