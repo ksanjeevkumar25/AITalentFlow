@@ -1,0 +1,24 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"type": "shell",
+			"label": "Build .NET Application",
+			"command": "dotnet build",
+			"group": "build",
+			"problemMatcher": [
+				"$msCompile"
+			]
+		}
+		,
+		{
+			"type": "shell",
+			"label": "Run .NET Application",
+			"command": "dotnet run",
+			"group": "test",
+			"problemMatcher": [
+				"$msCompile"
+			]
+		}
+	]
+}
