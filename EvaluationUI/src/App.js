@@ -110,16 +110,16 @@ function App() {
     // Get question answers API
     const getQuestionAnswers = async (audioText) => {
         try {
+            audioText="What is dotnet? Dotnet is a software development framework created by Microsoft that allows developers to build and run applications on various platforms. It provides a set of libraries, tools, and runtime environments for building applications in languages like C#, F#, and VB.NET. Dotnet supports web, desktop, mobile, cloud, and gaming applications, making it a versatile choice for developers.";
             console.log('🎯 Getting question answers from audio text...', { audioText });
 
-            const response = await fetch(`https://10.3.0.4:58654/api/Interview/extract-qa`, {
+            const response = await fetch(`https://aievaluationapi-f4breuawbkc6f3cm.uksouth-01.azurewebsites.net/api/Interview/extract-qa`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
+                    'accept': '*/*'
                 },
-                body: JSON.stringify({
-                    audioText: audioText
-                })
+                body: JSON.stringify(audioText)
             });
 
             if (!response.ok) {
@@ -1274,7 +1274,7 @@ function App() {
         try {
             // Extract ServiceOrderID and EmployeeID from candidate data
             const serviceOrderId = candidate.serviceOrderId || candidate.serviceOrderID || 301; // Default fallback
-            const employeeId = candidate.employeeId || candidate.candidateEmployeeId || candidate.id;
+            const employeeId = candidate.EmployeeID || candidate.candidateEmployeeId || candidate.id||101 // Default fallback;
 
             if (!employeeId) {
                 alert('Employee ID not found for this candidate');
@@ -1700,10 +1700,11 @@ Interview Panel`;
                                 <div className="interview-controls">
                                     <div className="interview-actions">
                                         {!isInterviewStarted ? (
-                                            <button className="btn btn-primary" onClick={startInterview}>Start Interview</button>
+                                            <button className="btn btn-primary" onClick={() => startInterview()}>Start Interview</button>
                                         ) : (
-                                            <button className="btn btn-danger" onClick={stopInterview}>Stop Interview</button>
+                                            <button className="btn btn-danger" onClick={() => stopInterview()}>Stop Interview</button>
                                         )}
+                                        
                                     </div>
                                 </div>
 
