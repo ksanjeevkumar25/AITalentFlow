@@ -1,0 +1,149 @@
+@model List<LoginApp.Models.Skill>
+@{
+    ViewData["Title"] = "User Profile";
+}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - Login App</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .profile-container {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+            margin-top: 30px;
+            padding: 40px;
+            max-width: 800px;
+        }
+        .profile-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .profile-icon {
+            font-size: 4rem;
+            color: #667eea;
+            margin-bottom: 20px;
+        }
+        .skill-card {
+            border: 1px solid #e9ecef;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            transition: all 0.3s ease;
+            background: #f8f9fa;
+        }
+        .skill-card:hover {
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            transform: translateY(-2px);
+        }
+        .skill-icon {
+            font-size: 2rem;
+            color: #667eea;
+            margin-bottom: 15px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-12">
+                <div class="profile-container">
+                    <div class="profile-header">
+                        <div class="profile-icon">
+                            <i class="fas fa-user-circle"></i>
+                        </div>
+                        <h2>@User.Identity?.Name's Profile</h2>
+                        <p class="text-muted">Upload your resume and view available skills</p>
+                    </div>
+
+                    @if (ViewBag.Message != null)
+                    {
+                        <div class="alert alert-success">@ViewBag.Message</div>
+                    }
+
+                    <!-- Resume Upload Section -->
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5><i class="fas fa-file-upload me-2"></i>Resume Upload</h5>
+                                </div>
+                                <div class="card-body">
+                                    @if (!ViewData.ModelState.IsValid)
+                                    {
+                                        foreach (var error in ViewData.ModelState.Values.SelectMany(v => v.Errors))
+                                        {
+                                            <div class="alert alert-danger">@error.ErrorMessage</div>
+                                        }
+                                    }
+                                    <form asp-action="UploadResume" asp-controller="Profile" method="post" enctype="multipart/form-data">
+                                        <div class="mb-3">
+                                            <label for="resume" class="form-label">Resume 2  (PDF, DOC, DOCX):</label>
+                                            <input type="file" class="form-control" id="resume" name="resume" accept=".pdf,.doc,.docx" required />
+                                        </div>
+                                        <button type="submit" class="btn btn-primary">
+                                            <i class="fas fa-upload me-2"></i>Upload Resume
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Skills Display Section -->
+                    <div class="row">
+                        <div class="col-12">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5><i class="fas fa-tools me-2"></i>Available Skills</h5>
+                                </div>
+                                <div class="card-body">
+                                    @if (Model.Any())
+                                    {
+                                        <div class="row">
+                                            @foreach (var skill in Model)
+                                            {
+                                                <div class="col-md-6 col-lg-4">
+                                                    <div class="skill-card text-center">
+                                                        <div class="skill-icon">
+                                                            <i class="fas fa-code"></i>
+                                                        </div>
+                                                        <h6 class="mb-2">@skill.SkillName</h6>
+                                                        @if (!string.IsNullOrEmpty(skill.SkillDescription))
+                                                        {
+                                                            <p class="text-muted small mb-0">@skill.SkillDescription</p>
+                                                        }
+                                                    </div>
+                                                </div>
+                                            }
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <div class="text-center text-muted">
+                                            <i class="fas fa-info-circle fa-3x mb-3"></i>
+                                            <p>No skills available in the database.</p>
+                                            <p>Please contact administrator to add skills to the [Skill] table.</p>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
