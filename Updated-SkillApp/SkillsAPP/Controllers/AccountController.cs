@@ -12,9 +12,9 @@ namespace LoginApp.Controllers
     {
         private readonly SqlDataAccess _dataAccess;
 
-        public AccountController()
+        public AccountController(SqlDataAccess dataAccess)
         {
-            _dataAccess = new SqlDataAccess();
+            _dataAccess = dataAccess;
         }
         [HttpGet]
         public IActionResult Login(string? returnUrl = null)

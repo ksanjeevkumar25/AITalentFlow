@@ -149,13 +149,13 @@
                         <p class="text-muted">Select skills and rate your proficiency level</p>
                     </div>
 
-                    @if (Model.Skills.Any())
+                    @if (Model.ExistingEmployeeSkills != null && Model.ExistingEmployeeSkills.Any())
                     {
                         <div class="row">
-                            @foreach (var skill in Model.Skills)
+                            @foreach (var empSkill in Model.ExistingEmployeeSkills)
                             {
-                                var existingRating = Model.ExistingEmployeeSkills.FirstOrDefault(es => es.SkillID == skill.SkillID);
-                                
+                                var skill = Model.Skills.FirstOrDefault(s => s.SkillID == empSkill.SkillID);
+                                if (skill == null) { continue; }
                                 <div class="col-md-4 col-lg-3 mb-3">
                                     <div class="skill-card text-center">
                                         <div class="skill-icon">
@@ -171,16 +171,13 @@
                                             <div class="skill-description text-muted">No description available</div>
                                         }
 
-                                        @if (existingRating != null)
-                                        {
-                                            <div class="rating-badge rating-@existingRating.EmployeeRatedSkillLevel">
-                                                Level @existingRating.EmployeeRatedSkillLevel
-                                            </div>
-                                            <small class="text-muted">
-                                                @existingRating.YearsOfExperience years experience<br>
-                                                Last worked: @existingRating.EmployeeLastWorkedOnThisSkill?.ToString("MMM dd, yyyy")
-                                            </small>
-                                        }
+                                        <div class="rating-badge rating-@empSkill.EmployeeRatedSkillLevel">
+                                            Level @empSkill.EmployeeRatedSkillLevel
+                                        </div>
+                                        <small class="text-muted">
+                                            @empSkill.YearsOfExperience years experience<br>
+                                            Last worked: @empSkill.EmployeeLastWorkedOnThisSkill?.ToString("MMM dd, yyyy")
+                                        </small>
 
                                         <div class="rating-form">
                                             <form class="skill-rating-form" data-skill-id="@skill.SkillID">
@@ -220,10 +217,37 @@
                                 <i class="fas fa-info-circle"></i>
                             </div>
                             <h3 class="text-muted">No Skills Available</h3>
-                            <p class="text-muted">No skills are currently available in the database.</p>
-                            <p class="text-muted">Please contact the administrator to add skills to the [Skill] table.</p>
+                            <p class="text-muted">No skills are currently available for this employee.</p>
                         </div>
                     }
+
+                    <!-- Dropdown to add new skill -->
+                    <div class="row mt-4">
+                        <div class="col-md-6 offset-md-3">
+                            <form id="add-skill-form">
+                                <div class="input-group">
+                                    <select class="form-select" id="newSkillSelect" required>
+                                        <option value="">Select a skill to add</option>
+                                        @if (Model.ExistingEmployeeSkills != null)
+                                        {
+                                            foreach (var skill in Model.Skills.Where(s => !Model.ExistingEmployeeSkills.Any(es => es.SkillID == s.SkillID)))
+                                            {
+                                                <option value="@skill.SkillID">@skill.SkillName</option>
+                                            }
+                                        }
+                                        else
+                                        {
+                                            foreach (var skill in Model.Skills)
+                                            {
+                                                <option value="@skill.SkillID">@skill.SkillName</option>
+                                            }
+                                        }
+                                    </select>
+                                    <button type="button" id="addSkillBtn" class="btn btn-success">Add Skill</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
 
                     <div class="text-center mt-5">
                         @* <a href="/Home" class="btn btn-primary back-button">
@@ -240,6 +264,36 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+        // Add Skill button click event
+        document.getElementById('addSkillBtn').addEventListener('click', function() {
+            const select = document.getElementById('newSkillSelect');
+            const skillId = select.value;
+            if (!skillId) {
+                showAlert('danger', 'Please select a skill to add.');
+                return;
+            }
+            fetch('/Profile/AddSkillToEmployee', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `skillId=${skillId}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showAlert('success', data.message);
+                    setTimeout(() => {
+                        location.reload();
+                    }, 1500);
+                } else {
+                    showAlert('danger', data.message);
+                }
+            })
+            .catch(error => {
+                showAlert('danger', 'Error adding skill');
+            });
+        });
         // Set default date to today
         document.querySelectorAll('.last-worked-date').forEach(input => {
             input.value = new Date().toISOString().split('T')[0];
@@ -251,14 +305,14 @@
                 e.preventDefault();
                 
                 const skillId = this.dataset.skillId;
-                const skillLevel = this.querySelector('.skill-level').value;
+                 const skillLevel = this.querySelector('.skill-level').value;
                 const yearsExperience = this.querySelector('.years-experience').value;
                 const lastWorkedDate = this.querySelector('.last-worked-date').value;
                 
                 if (!skillLevel || !yearsExperience || !lastWorkedDate) {
                     alert('Please fill in all fields');
                     return;
-                }
+                } 
 
                 // Send AJAX request
                 fetch('/Profile/RateSkill', {
@@ -267,6 +321,7 @@
                         'Content-Type': 'application/x-www-form-urlencoded',
                     },
                     body: `skillId=${skillId}&skillLevel=${skillLevel}&yearsOfExperience=${yearsExperience}&lastWorkedDate=${lastWorkedDate}`
+                   
                 })
                 .then(response => response.json())
                 .then(data => {

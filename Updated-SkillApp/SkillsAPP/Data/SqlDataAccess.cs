@@ -7,7 +7,12 @@ namespace LoginApp.Data
 {
     public class SqlDataAccess
     {
-        private readonly string _connectionString = "Server=20.0.97.202\\SQLDemo;Database=TestDB;User Id=sa;Password=Sanjeev@1234;TrustServerCertificate=True;";
+        private readonly string _connectionString;
+
+        public SqlDataAccess(IConfiguration configuration)
+        {
+            _connectionString = configuration.GetConnectionString("DefaultConnection");
+        }
 
         // Skill CRUD
         public List<Skill> GetSkills()
@@ -43,7 +48,8 @@ namespace LoginApp.Data
                 FROM EmployeeSkills es
                 INNER JOIN Employee e ON es.EmployeeID = e.EmployeeID
                 WHERE es.EmployeeID IN (SELECT [EmployeeID] FROM [Employee] WHERE [SupervisorID] = @EmployeeID)
-            ", conn))
+               and es.EmployeeRatedSkillLevel is not null and es.SupervisorRatedSkillLevel is null
+                ", conn))
             {
                 cmd.Parameters.AddWithValue("@EmployeeID", employeeId);
                 conn.Open();

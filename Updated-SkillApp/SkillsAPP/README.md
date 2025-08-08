@@ -1,3 +1,25 @@
+# Repository Notes
+
+## .gitignore
+This project uses a comprehensive `.gitignore` to avoid committing sensitive or unnecessary files, including:
+- User secrets and environment-specific config (e.g., `appsettings.Development.json`)
+- Local user/IDE files (`*.user`, `*.suo`, `.vs/`, etc.)
+- Build outputs (`bin/`, `obj/`, etc.)
+- Uploaded resumes and extracted skills (`wwwroot/resumes/`, `wwwroot/skills/`)
+- Test results, logs, and coverage reports
+
+## Configuration
+- The database connection string is stored in `appsettings.json` and read via dependency injection.
+- Do not commit environment-specific config files or secrets to version control.
+
+## Skills Management (Updated)
+- Skills added via the UI are now saved both in the session (for immediate feedback) and persisted to the database.
+- The Add Skill button uses a JavaScript onclick event for a smoother user experience.
+
+## Running & Development
+- Always run `dotnet clean` before `dotnet build` if you encounter build issues.
+- Make sure to update your local `.gitignore` if you add new folders for uploads or logs.
+
 # Login App
 
 A simple ASP.NET Core web application with authentication functionality and skills management.

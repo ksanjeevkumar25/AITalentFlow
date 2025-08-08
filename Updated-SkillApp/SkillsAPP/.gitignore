@@ -1,3 +1,42 @@
+../../.vs/
+# Ignore Visual Studio and VS Code settings folders
+.vs/
+.vscode/
+# Custom ignores for SkillApp
+# User secrets and sensitive config
+appsettings.Development.json
+appsettings.Production.json
+appsettings.Staging.json
+appsettings.Local.json
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Ignore extracted resumes and skills
+wwwroot/resumes/
+wwwroot/skills/
+
+# Ignore database and log files
+*.db
+*.log
+
+# Ignore test results
+TestResults/
+
+# Ignore coverage reports
+coverage/
+
+# Ignore Python cache (if any)
+__pycache__/
+*.pyc
+
+# Ignore npm/yarn/pnpm lock files (if any)
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# End of custom ignores
 # Build results
 [Dd]ebug/
 [Dd]ebugPublic/
