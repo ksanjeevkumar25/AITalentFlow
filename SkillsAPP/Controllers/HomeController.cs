@@ -110,8 +110,9 @@ namespace LoginApp.Controllers
             // Find skills in resume that are in master list but NOT in DB
             var foundSkills = allPossibleSkills
                 .Where(skill =>
-                    resumeText.IndexOf(skill, StringComparison.OrdinalIgnoreCase) >= 0 &&
-                    !dbSkills.Contains(skill.ToLowerInvariant()))
+                    resumeText.IndexOf(skill, StringComparison.OrdinalIgnoreCase) >= 0
+                    //&& !dbSkills.Contains(skill.ToLowerInvariant())
+                    )
                 .ToList();
 
             // Insert new skills into Skill table and collect their SkillIDs
@@ -154,7 +155,7 @@ namespace LoginApp.Controllers
             if (employee != null)
             {
                 int nextEmployeeSkillId = _dataAccess.GetMaxEmployeeSkillID() + 1;
-                foreach (var skillId in insertedSkillIds)
+                 foreach (var skillId in insertedSkillIds)
                 {
                     // Check if the EmployeeSkills record already exists to avoid duplicates
                     var existingEmpSkill = _dataAccess.GetEmployeeSkills(employee.EmployeeID)
