@@ -34,31 +34,68 @@ app.get('/health', (req, res) => {
 // Database connection test endpoint with detailed information
 app.get('/test-db-connection', async (req, res) => {
     try {
+        // Check if environment variables exist
+        const envCheck = {
+            DB_USER: process.env.DB_USER ? "exists" : "missing",
+            DB_PASSWORD: process.env.DB_PASSWORD ? "exists" : "missing",
+            DB_SERVER: process.env.DB_SERVER ? "exists" : "missing",
+            DB_DATABASE: process.env.DB_DATABASE ? "exists" : "missing",
+            DB_INSTANCE: process.env.DB_INSTANCE ? "exists" : "missing",
+            DB_ENCRYPT: process.env.DB_ENCRYPT,
+            DB_TRUST_SERVER_CERTIFICATE: process.env.DB_TRUST_SERVER_CERTIFICATE
+        };
+        
+        // Check dbConfig values
         const dbConfigTest = {
-            user: dbConfig.user,
-            password: '***', // Masked for security
-            server: dbConfig.server,
-            database: dbConfig.database,
+            user: dbConfig.user || "undefined",
+            password: dbConfig.password ? "***" : "undefined", // Masked for security
+            server: dbConfig.server || "undefined",
+            database: dbConfig.database || "undefined",
             options: {
-                encrypt: dbConfig.options.encrypt,
-                trustServerCertificate: dbConfig.options.trustServerCertificate,
-                instanceName: dbConfig.options.instanceName
+                encrypt: dbConfig.options ? dbConfig.options.encrypt : "undefined",
+                trustServerCertificate: dbConfig.options ? dbConfig.options.trustServerCertificate : "undefined",
+                instanceName: dbConfig.options ? dbConfig.options.instanceName || "undefined" : "undefined"
             }
         };
         
+        // Send response before attempting connection
         res.json({
-            message: 'Attempting database connection...',
-            config: dbConfigTest,
+            message: 'Database config check',
+            environmentVars: envCheck,
+            configValues: dbConfigTest,
             timestamp: new Date().toISOString()
         });
         
-        // Actual connection test happens after responding
+        console.log("Environment check:", envCheck);
+        console.log("Config values:", JSON.stringify(dbConfigTest));
+    } catch (err) {
+        console.error('Test DB config error:', err);
+        res.status(500).json({ 
+            error: err instanceof Error ? err.message : "Unknown error",
+            stack: err instanceof Error ? err.stack : "No stack trace"
+        });
+    }
+});
+
+// Actual connection test
+app.get('/test-db-connect', async (req, res) => {
+    try {
+        // Try connection
         const pool = await sql.connect(dbConfig);
         const result = await pool.request().query('SELECT 1 as TestConnection');
-        console.log('DB Connection successful:', result.recordset);
+        res.json({
+            success: true,
+            message: 'Database connection successful',
+            result: result.recordset
+        });
     } catch (err) {
-        console.error('Test DB connection error:', err);
-        // This won't be sent as we've already responded, but will be logged
+        console.error('DB Connection error:', err);
+        res.status(500).json({
+            success: false,
+            message: 'Database connection failed',
+            error: err instanceof Error ? err.message : "Unknown error",
+            stack: err instanceof Error ? err.stack : "No stack trace"
+        });
     }
 });
 
