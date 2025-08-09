@@ -27,9 +27,25 @@ jobs:
         run: |
           cd EvaluationEngine
           npm install
-          npm run build --if-present
-          # Skip tests for now to avoid client tests
-          # npm run test --if-present
+          npm run build
+          echo "NODE_ENV=production" > .env
+          # Create web.config with proper settings
+          echo "<?xml version=\"1.0\" encoding=\"utf-8\"?>
+          <configuration>
+            <system.webServer>
+              <handlers>
+                <add name=\"iisnode\" path=\"server.js\" verb=\"*\" modules=\"iisnode\" />
+              </handlers>
+              <rewrite>
+                <rules>
+                  <rule name=\"myapp\">
+                    <match url=\"/*\" />
+                    <action type=\"Rewrite\" url=\"server.js\" />
+                  </rule>
+                </rules>
+              </rewrite>
+            </system.webServer>
+          </configuration>" > web.config
       
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4

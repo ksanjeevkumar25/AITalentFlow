@@ -2,9 +2,10 @@
   "name": "evaluation-engine",
   "version": "1.0.0",
   "description": "An application for triggering evaluation requests and managing AI-enabled multiple choice questions.",
-  "main": "src/app.ts",
+  "main": "server.js",
   "scripts": {
     "start": "ts-node src/app.ts",
+    "start:prod": "node server.js",
     "build": "tsc",
     "test": "jest"
   },
@@ -33,6 +34,6 @@
     "@types/nodemailer": "^6.4.17",
     "@types/swagger-ui-express": "^4.1.8"
   },
-  "author": "Your Name",
+  "author": "Sanjeev",
   "license": "MIT"
 }

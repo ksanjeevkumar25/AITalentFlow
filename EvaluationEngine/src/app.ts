@@ -15,9 +15,29 @@ import * as fs from 'fs';
 import * as path from 'path';
 
 const app = express();
+
+// Simple ping endpoint that doesn't depend on any configuration
+app.get('/ping', (req, res) => {
+    res.status(200).send('pong');
+});
+
 // Allow CORS for frontend
-const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3001';
-app.use(cors({ origin: frontendUrl, credentials: true }));
+let frontendUrl;
+try {
+    frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3001';
+} catch (err) {
+    console.error('Error setting frontendUrl:', err);
+    frontendUrl = 'http://localhost:3001'; // Default if there's an error
+}
+
+try {
+    app.use(cors({ origin: frontendUrl, credentials: true }));
+} catch (err) {
+    console.error('Error setting up CORS:', err);
+    // Simple CORS setup as fallback
+    app.use(cors());
+}
+
 const PORT = process.env.PORT || 3000;
 
 app.use(bodyParser.json());
