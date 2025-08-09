@@ -23,29 +23,33 @@ jobs:
         with:
           node-version: '22.x'
 
-      - name: npm install and build server only
+      - name: npm install and prepare minimal server
         run: |
           cd EvaluationEngine
           npm install
-          npm run build
+          
+          # Create a simple .env file
           echo "NODE_ENV=production" > .env
-          # Create web.config with proper settings
+          
+          # Create web.config file
           echo "<?xml version=\"1.0\" encoding=\"utf-8\"?>
-          <configuration>
-            <system.webServer>
-              <handlers>
-                <add name=\"iisnode\" path=\"server.js\" verb=\"*\" modules=\"iisnode\" />
-              </handlers>
-              <rewrite>
-                <rules>
-                  <rule name=\"myapp\">
-                    <match url=\"/*\" />
-                    <action type=\"Rewrite\" url=\"server.js\" />
-                  </rule>
-                </rules>
-              </rewrite>
-            </system.webServer>
-          </configuration>" > web.config
+<configuration>
+  <system.webServer>
+    <handlers>
+      <add name=\"iisnode\" path=\"server.js\" verb=\"*\" modules=\"iisnode\"/>
+    </handlers>
+    <rewrite>
+      <rules>
+        <rule name=\"StaticContent\">
+          <action type=\"Rewrite\" url=\"server.js\"/>
+        </rule>
+      </rules>
+    </rewrite>
+  </system.webServer>
+</configuration>" > web.config
+          
+          # Display files for debugging
+          dir
       
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4

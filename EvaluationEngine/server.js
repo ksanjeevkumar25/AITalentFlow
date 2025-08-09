@@ -1,45 +1,72 @@
-// This is the entry point for Azure App Service
-const express = require('express');
-const cors = require('cors');
+// Standalone server.js for Azure App Service
+// This file intentionally has no dependencies on other project files
 
-// Create a minimal express app that works even if there are issues with the main app
-const app = express();
-app.use(cors());
+console.log('Starting minimal server.js');
 
-// Add a simple ping endpoint that doesn't depend on any configuration
-app.get('/ping', (req, res) => {
-  res.status(200).send('pong - from server.js');
-});
+// Basic HTTP server using Node's built-in http module
+const http = require('http');
 
-// Health check endpoint
-app.get('/health', (req, res) => {
-  res.json({
-    success: true,
-    message: 'Server is running (from server.js)',
-    timestamp: new Date().toISOString()
-  });
-});
-
-// Try to load the main app
-try {
-  // Only try to start the TypeScript app if not in Azure (where we'll use the built version)
-  if (process.env.NODE_ENV !== 'production') {
-    console.log('Starting TypeScript app in development mode');
-    require('ts-node/register');
-    require('./src/app.ts');
-  } else {
-    console.log('Starting compiled JavaScript app in production mode');
-    // In production, we'll use the compiled JavaScript
-    require('./dist/app.js');
+const server = http.createServer((req, res) => {
+  console.log(`Received request for ${req.url}`);
+  
+  // Set CORS headers
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  
+  // Handle preflight OPTIONS request
+  if (req.method === 'OPTIONS') {
+    res.statusCode = 200;
+    res.end();
+    return;
   }
-} catch (err) {
-  console.error('Failed to start main app:', err);
-}
+  
+  // Handle different routes
+  if (req.url === '/ping') {
+    res.statusCode = 200;
+    res.setHeader('Content-Type', 'text/plain');
+    res.end('pong - minimal server');
+  } 
+  else if (req.url === '/health') {
+    res.statusCode = 200;
+    res.setHeader('Content-Type', 'application/json');
+    res.end(JSON.stringify({
+      status: 'ok',
+      timestamp: new Date().toISOString(),
+      message: 'Minimal server is running'
+    }));
+  }
+  else if (req.url === '/env') {
+    // Return environment info (excluding secrets)
+    const safeEnv = {};
+    for (const key in process.env) {
+      // Skip environment variables that might contain secrets
+      if (!key.includes('PASSWORD') && 
+          !key.includes('SECRET') && 
+          !key.includes('KEY')) {
+        safeEnv[key] = process.env[key];
+      } else {
+        safeEnv[key] = '[REDACTED]';
+      }
+    }
+    
+    res.statusCode = 200;
+    res.setHeader('Content-Type', 'application/json');
+    res.end(JSON.stringify({
+      env: safeEnv,
+      nodeVersion: process.version,
+      platform: process.platform
+    }, null, 2));
+  }
+  else {
+    res.statusCode = 200;
+    res.setHeader('Content-Type', 'text/plain');
+    res.end('Minimal Node.js server is running');
+  }
+});
 
-// Define a port for this minimal app to listen on
-const PORT = process.env.PORT || 3000;
+const port = process.env.PORT || 3000;
 
-// Start listening
-app.listen(PORT, () => {
-  console.log(`Minimal server running on port ${PORT}`);
+server.listen(port, () => {
+  console.log(`Minimal server listening on port ${port}`);
 });
