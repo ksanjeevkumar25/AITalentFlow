@@ -32,21 +32,21 @@ jobs:
           echo "NODE_ENV=production" > .env
           
           # Create web.config file
-          echo "<?xml version=\"1.0\" encoding=\"utf-8\"?>
-<configuration>
-  <system.webServer>
-    <handlers>
-      <add name=\"iisnode\" path=\"server.js\" verb=\"*\" modules=\"iisnode\"/>
-    </handlers>
-    <rewrite>
-      <rules>
-        <rule name=\"StaticContent\">
-          <action type=\"Rewrite\" url=\"server.js\"/>
-        </rule>
-      </rules>
-    </rewrite>
-  </system.webServer>
-</configuration>" > web.config
+          echo "<?xml version=\"1.0\" encoding=\"utf-8\"?>" > web.config
+          echo "<configuration>" >> web.config
+          echo "  <system.webServer>" >> web.config
+          echo "    <handlers>" >> web.config
+          echo "      <add name=\"iisnode\" path=\"server.js\" verb=\"*\" modules=\"iisnode\"/>" >> web.config
+          echo "    </handlers>" >> web.config
+          echo "    <rewrite>" >> web.config
+          echo "      <rules>" >> web.config
+          echo "        <rule name=\"StaticContent\">" >> web.config
+          echo "          <action type=\"Rewrite\" url=\"server.js\"/>" >> web.config
+          echo "        </rule>" >> web.config
+          echo "      </rules>" >> web.config
+          echo "    </rewrite>" >> web.config
+          echo "  </system.webServer>" >> web.config
+          echo "</configuration>" >> web.config
           
           # Display files for debugging
           dir
