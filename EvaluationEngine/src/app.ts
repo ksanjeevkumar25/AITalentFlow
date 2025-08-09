@@ -31,6 +31,37 @@ app.get('/health', (req, res) => {
     });
 });
 
+// Database connection test endpoint with detailed information
+app.get('/test-db-connection', async (req, res) => {
+    try {
+        const dbConfigTest = {
+            user: dbConfig.user,
+            password: '***', // Masked for security
+            server: dbConfig.server,
+            database: dbConfig.database,
+            options: {
+                encrypt: dbConfig.options.encrypt,
+                trustServerCertificate: dbConfig.options.trustServerCertificate,
+                instanceName: dbConfig.options.instanceName
+            }
+        };
+        
+        res.json({
+            message: 'Attempting database connection...',
+            config: dbConfigTest,
+            timestamp: new Date().toISOString()
+        });
+        
+        // Actual connection test happens after responding
+        const pool = await sql.connect(dbConfig);
+        const result = await pool.request().query('SELECT 1 as TestConnection');
+        console.log('DB Connection successful:', result.recordset);
+    } catch (err) {
+        console.error('Test DB connection error:', err);
+        // This won't be sent as we've already responded, but will be logged
+    }
+});
+
 // Database health check endpoint
 app.get('/health/db', async (req, res) => {
     try {
@@ -101,7 +132,26 @@ app.post('/login', async (req, res) => {
         return res.json({ success: true, message: 'Login successful.' });
     } catch (err) {
         console.error('Login error:', err);
-        return res.status(500).json({ success: false, message: 'Server error.' });
+        // Send detailed error information for debugging
+        const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+        const errorStack = err instanceof Error ? err.stack : 'No stack trace';
+        return res.status(500).json({ 
+            success: false, 
+            message: 'Server error.', 
+            error: errorMessage,
+            stack: errorStack,
+            dbConfig: {
+                server: dbConfig.server,
+                database: dbConfig.database,
+                user: dbConfig.user ? '***' : 'not set', // Hide sensitive info
+                password: dbConfig.password ? '***' : 'not set', // Hide sensitive info
+                options: {
+                    encrypt: dbConfig.options.encrypt,
+                    trustServerCertificate: dbConfig.options.trustServerCertificate,
+                    instanceName: dbConfig.options.instanceName || 'not set'
+                }
+            }
+        });
     }
 });
 
