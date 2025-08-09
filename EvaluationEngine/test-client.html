@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Azure Server Test Client</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        button {
+            padding: 8px 16px;
+            margin: 5px;
+            cursor: pointer;
+        }
+        #output {
+            border: 1px solid #ccc;
+            padding: 10px;
+            margin-top: 20px;
+            min-height: 200px;
+            background-color: #f5f5f5;
+            white-space: pre-wrap;
+            overflow-wrap: break-word;
+        }
+        .input-group {
+            margin-bottom: 10px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        input[type="text"] {
+            width: 100%;
+            padding: 8px;
+            box-sizing: border-box;
+        }
+    </style>
+</head>
+<body>
+    <h1>Azure Server Test Client</h1>
+    
+    <div class="input-group">
+        <label for="serverUrl">Server URL:</label>
+        <input type="text" id="serverUrl" value="https://evaluation-engine-api.azurewebsites.net" placeholder="Enter server URL">
+    </div>
+    
+    <div class="input-group">
+        <label>Common Azure URLs to try:</label>
+        <select id="commonUrls" onchange="updateServerUrl()">
+            <option value="">-- Select a common URL --</option>
+            <option value="https://evaluation-engine-api.azurewebsites.net">evaluation-engine-api</option>
+            <option value="https://evaluationengineapi.azurewebsites.net">evaluationengineapi</option>
+            <option value="https://evaluation-engine.azurewebsites.net">evaluation-engine</option>
+            <option value="https://evaluationengine.azurewebsites.net">evaluationengine</option>
+        </select>
+    </div>
+
+    <div>
+        <button onclick="testEndpoint('/ping')">Test /ping</button>
+        <button onclick="testEndpoint('/health')">Test /health</button>
+        <button onclick="testEndpoint('/env')">Test /env</button>
+        <button onclick="testEndpoint('/')">Test Root</button>
+        <button onclick="testAzureRunning()">Check Azure App Existence</button>
+    </div>
+
+    <h3>Response:</h3>
+    <pre id="output">Results will appear here...</pre>
+
+    <script>
+        function updateServerUrl() {
+            const dropdown = document.getElementById('commonUrls');
+            const serverUrlInput = document.getElementById('serverUrl');
+            if (dropdown.value) {
+                serverUrlInput.value = dropdown.value;
+            }
+        }
+
+        async function testAzureRunning() {
+            const outputElement = document.getElementById('output');
+            const serverUrl = document.getElementById('serverUrl').value.trim();
+            
+            if (!serverUrl) {
+                outputElement.textContent = 'Please enter a server URL';
+                return;
+            }
+
+            // Remove path and just get the hostname
+            const url = new URL(serverUrl);
+            const hostname = url.hostname;
+            
+            outputElement.textContent = `Testing if Azure App ${hostname} exists...\n`;
+            
+            try {
+                // Try to load just the default Azure hostingstart page which should exist even if your app isn't working
+                const hostingUrl = `https://${hostname}/hostingstart.html`;
+                const startTime = performance.now();
+                
+                const response = await fetch(hostingUrl, {
+                    mode: 'cors',
+                    cache: 'no-store'
+                });
+                
+                const endTime = performance.now();
+                const responseTime = Math.round(endTime - startTime);
+                
+                if (response.ok) {
+                    outputElement.textContent = `✅ The Azure App Service ${hostname} exists and is responding!
+Response time: ${responseTime}ms
+Status: ${response.status} ${response.statusText}
+
+This means the Azure Web App exists, but your Node.js app might not be properly deployed or might be crashing.
+Check the deployment logs in GitHub Actions and Azure App Service logs.`;
+                } else {
+                    outputElement.textContent = `⚠️ The Azure App Service ${hostname} exists but returned status ${response.status} ${response.statusText}
+Response time: ${responseTime}ms
+
+This could indicate an issue with the Azure App Service configuration.`;
+                }
+            } catch (error) {
+                outputElement.textContent = `❌ Error connecting to ${hostname}: ${error.message}
+
+This likely means either:
+1. The Azure App Service doesn't exist with this name
+2. It's not properly configured
+3. There's a network connectivity issue
+
+Try checking in the Azure Portal to confirm the exact App Service name.`;
+            }
+        }
+        
+        async function testEndpoint(path) {
+            const outputElement = document.getElementById('output');
+            const serverUrl = document.getElementById('serverUrl').value.trim();
+            
+            if (!serverUrl) {
+                outputElement.textContent = 'Please enter a server URL';
+                return;
+            }
+
+            const url = serverUrl + path;
+            outputElement.textContent = `Testing ${url}...\n`;
+            
+            try {
+                // Add a timestamp parameter to bypass any caching
+                const timeParam = `?t=${new Date().getTime()}`;
+                const urlWithTime = url + timeParam;
+                
+                const startTime = performance.now();
+                const response = await fetch(urlWithTime, {
+                    mode: 'cors',
+                    headers: {
+                        'Accept': 'application/json, text/plain, */*'
+                    }
+                });
+                const endTime = performance.now();
+                const responseTime = Math.round(endTime - startTime);
+                
+                let responseText;
+                try {
+                    responseText = await response.json();
+                    responseText = JSON.stringify(responseText, null, 2);
+                } catch (e) {
+                    // If JSON parsing fails, get the raw text
+                    responseText = await response.text();
+                }
+                
+                // Show detailed information about the response
+                outputElement.textContent = `Status: ${response.status} ${response.statusText}
+Response time: ${responseTime}ms
+URL: ${urlWithTime}
+Headers: ${JSON.stringify(Object.fromEntries([...response.headers]), null, 2)}
+
+Response body:
+${responseText}`;
+            } catch (error) {
+                // Show more detailed error information
+                outputElement.textContent = `Error connecting to ${url}: ${error.message}
+Stack: ${error.stack}
+
+Please check:
+1. If the server is running (try the "Check Azure App Existence" button first)
+2. If CORS is properly configured on the server
+3. Network connectivity between your browser and the server
+4. Azure App Service logs for any backend errors`;
+            }
+        }
+    </script>
+</body>
+</html>

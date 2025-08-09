@@ -1,72 +1,27 @@
-// Standalone server.js for Azure App Service
-// This file intentionally has no dependencies on other project files
+// Ultra-minimal server.js for Azure App Service troubleshooting
+console.log('Starting ultra-minimal server.js');
 
-console.log('Starting minimal server.js');
+// The simplest possible HTTP server
+require('http').createServer(function(req, res) {
+  // Log the request for debugging
+  console.log(new Date().toISOString() + ' - Request: ' + req.url);
 
-// Basic HTTP server using Node's built-in http module
-const http = require('http');
-
-const server = http.createServer((req, res) => {
-  console.log(`Received request for ${req.url}`);
-  
-  // Set CORS headers
+  // Enable CORS for all origins
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Access-Control-Allow-Methods', '*');
+  res.setHeader('Access-Control-Allow-Headers', '*');
   
-  // Handle preflight OPTIONS request
+  // Handle OPTIONS requests (CORS preflight)
   if (req.method === 'OPTIONS') {
-    res.statusCode = 200;
+    res.writeHead(200);
     res.end();
     return;
   }
+
+  // Send a simple text response for any request
+  res.writeHead(200, {'Content-Type': 'text/plain'});
+  res.end('Hello from Azure! Path: ' + req.url);
   
-  // Handle different routes
-  if (req.url === '/ping') {
-    res.statusCode = 200;
-    res.setHeader('Content-Type', 'text/plain');
-    res.end('pong - minimal server');
-  } 
-  else if (req.url === '/health') {
-    res.statusCode = 200;
-    res.setHeader('Content-Type', 'application/json');
-    res.end(JSON.stringify({
-      status: 'ok',
-      timestamp: new Date().toISOString(),
-      message: 'Minimal server is running'
-    }));
-  }
-  else if (req.url === '/env') {
-    // Return environment info (excluding secrets)
-    const safeEnv = {};
-    for (const key in process.env) {
-      // Skip environment variables that might contain secrets
-      if (!key.includes('PASSWORD') && 
-          !key.includes('SECRET') && 
-          !key.includes('KEY')) {
-        safeEnv[key] = process.env[key];
-      } else {
-        safeEnv[key] = '[REDACTED]';
-      }
-    }
-    
-    res.statusCode = 200;
-    res.setHeader('Content-Type', 'application/json');
-    res.end(JSON.stringify({
-      env: safeEnv,
-      nodeVersion: process.version,
-      platform: process.platform
-    }, null, 2));
-  }
-  else {
-    res.statusCode = 200;
-    res.setHeader('Content-Type', 'text/plain');
-    res.end('Minimal Node.js server is running');
-  }
-});
-
-const port = process.env.PORT || 3000;
-
-server.listen(port, () => {
-  console.log(`Minimal server listening on port ${port}`);
+}).listen(process.env.PORT || 8080, function() {
+  console.log('Server started on port ' + (process.env.PORT || 8080));
 });
