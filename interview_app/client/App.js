@@ -33,11 +33,16 @@ const App = () => {
       if (localVideoRef.current) {
         localVideoRef.current.srcObject = localStreamCurrent;
       }
+      console.log("[WebRTC] Got local media stream");
 
       // 2. Connect to signaling server
       wsConn = new window.WebSocket("ws://localhost:8080");
       setWs(wsConn);
-
+      console.log("[Signaling] Connecting to ws://localhost:8080");
+      // wsConn = new window.WebSocket("wss://signalserver-gdhmhtfcgwdzbjd6.uksouth-01.azurewebsites.net");
+      // setWs(wsConn);
+      // console.log("[Signaling] Connecting to wss://signalserver-gdhmhtfcgwdzbjd6.uksouth-01.azurewebsites.net");
+    
       // 3. Setup peer connection
       peerConn = new window.RTCPeerConnection({
         iceServers: [
@@ -45,19 +50,25 @@ const App = () => {
         ]
       });
       setPc(peerConn);
+      console.log("[WebRTC] Created RTCPeerConnection");
 
       // 4. Add local tracks
-      localStreamCurrent.getTracks().forEach(track => peerConn.addTrack(track, localStreamCurrent));
+      localStreamCurrent.getTracks().forEach(track => {
+        peerConn.addTrack(track, localStreamCurrent);
+        console.log(`[WebRTC] Added local track: ${track.kind}`);
+      });
 
       // 5. Handle ICE candidates
       peerConn.onicecandidate = (event) => {
         if (event.candidate) {
+          console.log("[WebRTC] Sending ICE candidate", event.candidate);
           wsConn.send(JSON.stringify({ type: "signal", room, payload: { candidate: event.candidate } }));
         }
       };
 
       // 6. Handle remote stream
       peerConn.ontrack = (event) => {
+        console.log("[WebRTC] Received remote track", event.streams);
         if (remoteVideoRef.current) {
           remoteVideoRef.current.srcObject = event.streams[0];
         }
@@ -65,15 +76,18 @@ const App = () => {
 
       // 7. WebSocket signaling
       wsConn.onopen = () => {
+        console.log("[Signaling] WebSocket open, joining room", room);
         wsConn.send(JSON.stringify({ type: "join", room, payload: { name } }));
       };
       wsConn.onmessage = async (msg) => {
         const data = JSON.parse(msg.data);
+        console.log("[Signaling] Message received", data);
         if (data.type === "joined") {
           // If second user, create offer
           if (data.name) setRemoteName(data.name);
           const offer = await peerConn.createOffer();
           await peerConn.setLocalDescription(offer);
+          console.log("[WebRTC] Created and set local offer", offer);
           wsConn.send(JSON.stringify({ type: "signal", room, payload: { sdp: offer } }));
         } else if (data.type === "peer_name") {
           if (data.name) setRemoteName(data.name);

@@ -1,7 +1,7 @@
 // src/apiConfig.ts
 // Centralized config for external evaluation/question API
 
-export const EVAL_API_URL = process.env.REACT_APP_EVAL_API_URL ;
+export const EVAL_API_URL = process.env.REACT_APP_EVAL_API_URL;
 
 
 // Start interview session

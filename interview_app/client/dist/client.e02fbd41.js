@@ -160,11 +160,11 @@
       });
     }
   }
-})({"kxwl6":[function(require,module,exports,__globalThis) {
+})({"lpzWn":[function(require,module,exports,__globalThis) {
 var global = arguments[3];
 var HMR_HOST = null;
 var HMR_PORT = null;
-var HMR_SERVER_PORT = 1234;
+var HMR_SERVER_PORT = 3000;
 var HMR_SECURE = false;
 var HMR_ENV_HASH = "439701173a9199ea";
 var HMR_USE_SSE = false;
@@ -24958,7 +24958,9 @@ const App = ()=>{
     const mediaRecorderRef = (0, _react.useRef)(null);
     const recordedChunks = (0, _react.useRef)([]);
     const [room, setRoom] = (0, _react.useState)("");
+    const [name, setName] = (0, _react.useState)("");
     const [joined, setJoined] = (0, _react.useState)(false);
+    const [remoteName, setRemoteName] = (0, _react.useState)("Other Participant");
     const [ws, setWs] = (0, _react.useState)(null);
     const [pc, setPc] = (0, _react.useState)(null);
     const localVideoRef = (0, _react.useRef)(null);
@@ -24979,9 +24981,14 @@ const App = ()=>{
             });
             setLocalStream(localStreamCurrent);
             if (localVideoRef.current) localVideoRef.current.srcObject = localStreamCurrent;
+            console.log("[WebRTC] Got local media stream");
             // 2. Connect to signaling server
             wsConn = new window.WebSocket("ws://localhost:8080");
             setWs(wsConn);
+            console.log("[Signaling] Connecting to ws://localhost:8080");
+            // wsConn = new window.WebSocket("wss://signalserver-gdhmhtfcgwdzbjd6.uksouth-01.azurewebsites.net");
+            // setWs(wsConn);
+            // console.log("[Signaling] Connecting to wss://signalserver-gdhmhtfcgwdzbjd6.uksouth-01.azurewebsites.net");
             // 3. Setup peer connection
             peerConn = new window.RTCPeerConnection({
                 iceServers: [
@@ -24991,35 +24998,50 @@ const App = ()=>{
                 ]
             });
             setPc(peerConn);
+            console.log("[WebRTC] Created RTCPeerConnection");
             // 4. Add local tracks
-            localStreamCurrent.getTracks().forEach((track)=>peerConn.addTrack(track, localStreamCurrent));
+            localStreamCurrent.getTracks().forEach((track)=>{
+                peerConn.addTrack(track, localStreamCurrent);
+                console.log(`[WebRTC] Added local track: ${track.kind}`);
+            });
             // 5. Handle ICE candidates
             peerConn.onicecandidate = (event)=>{
-                if (event.candidate) wsConn.send(JSON.stringify({
-                    type: "signal",
-                    room,
-                    payload: {
-                        candidate: event.candidate
-                    }
-                }));
+                if (event.candidate) {
+                    console.log("[WebRTC] Sending ICE candidate", event.candidate);
+                    wsConn.send(JSON.stringify({
+                        type: "signal",
+                        room,
+                        payload: {
+                            candidate: event.candidate
+                        }
+                    }));
+                }
             };
             // 6. Handle remote stream
             peerConn.ontrack = (event)=>{
+                console.log("[WebRTC] Received remote track", event.streams);
                 if (remoteVideoRef.current) remoteVideoRef.current.srcObject = event.streams[0];
             };
             // 7. WebSocket signaling
             wsConn.onopen = ()=>{
+                console.log("[Signaling] WebSocket open, joining room", room);
                 wsConn.send(JSON.stringify({
                     type: "join",
-                    room
+                    room,
+                    payload: {
+                        name
+                    }
                 }));
             };
             wsConn.onmessage = async (msg)=>{
                 const data = JSON.parse(msg.data);
+                console.log("[Signaling] Message received", data);
                 if (data.type === "joined") {
                     // If second user, create offer
+                    if (data.name) setRemoteName(data.name);
                     const offer = await peerConn.createOffer();
                     await peerConn.setLocalDescription(offer);
+                    console.log("[WebRTC] Created and set local offer", offer);
                     wsConn.send(JSON.stringify({
                         type: "signal",
                         room,
@@ -25027,6 +25049,8 @@ const App = ()=>{
                             sdp: offer
                         }
                     }));
+                } else if (data.type === "peer_name") {
+                    if (data.name) setRemoteName(data.name);
                 } else if (data.type === "signal") {
                     if (data.payload.sdp) {
                         if (data.payload.sdp.type === "offer") {
@@ -25120,13 +25144,13 @@ const App = ()=>{
                     children: "Interview Room"
                 }, void 0, false, {
                     fileName: "App.js",
-                    lineNumber: 148,
+                    lineNumber: 167,
                     columnNumber: 9
                 }, undefined),
                 !joined ? /*#__PURE__*/ (0, _jsxDevRuntime.jsxDEV)("form", {
                     onSubmit: (e)=>{
                         e.preventDefault();
-                        if (room.trim()) setJoined(true);
+                        if (room.trim() && name.trim()) setJoined(true);
                     },
                     style: {
                         marginBottom: 24,
@@ -25135,9 +25159,57 @@ const App = ()=>{
                         gap: 16
                     },
                     children: [
+                        /*#__PURE__*/ (0, _jsxDevRuntime.jsxDEV)("label", {
+                            style: {
+                                fontWeight: 500,
+                                marginBottom: 4
+                            },
+                            children: "Your Name"
+                        }, void 0, false, {
+                            fileName: "App.js",
+                            lineNumber: 183,
+                            columnNumber: 13
+                        }, undefined),
                         /*#__PURE__*/ (0, _jsxDevRuntime.jsxDEV)("input", {
                             type: "text",
-                            placeholder: "Enter room number or name",
+                            placeholder: "Enter your name",
+                            value: name,
+                            onChange: (e)=>setName(e.target.value),
+                            style: {
+                                padding: 12,
+                                borderRadius: 6,
+                                border: "1px solid #cbd5e1",
+                                fontSize: 16,
+                                outline: "none"
+                            }
+                        }, void 0, false, {
+                            fileName: "App.js",
+                            lineNumber: 184,
+                            columnNumber: 13
+                        }, undefined),
+                        /*#__PURE__*/ (0, _jsxDevRuntime.jsxDEV)("div", {
+                            style: {
+                                height: 20
+                            }
+                        }, void 0, false, {
+                            fileName: "App.js",
+                            lineNumber: 197,
+                            columnNumber: 13
+                        }, undefined),
+                        /*#__PURE__*/ (0, _jsxDevRuntime.jsxDEV)("label", {
+                            style: {
+                                fontWeight: 500,
+                                marginBottom: 4
+                            },
+                            children: "Meeting Number"
+                        }, void 0, false, {
+                            fileName: "App.js",
+                            lineNumber: 198,
+                            columnNumber: 13
+                        }, undefined),
+                        /*#__PURE__*/ (0, _jsxDevRuntime.jsxDEV)("input", {
+                            type: "text",
+                            placeholder: "Enter meeting number or room name",
                             value: room,
                             onChange: (e)=>setRoom(e.target.value),
                             style: {
@@ -25149,7 +25221,7 @@ const App = ()=>{
                             }
                         }, void 0, false, {
                             fileName: "App.js",
-                            lineNumber: 164,
+                            lineNumber: 199,
                             columnNumber: 13
                         }, undefined),
                         /*#__PURE__*/ (0, _jsxDevRuntime.jsxDEV)("button", {
@@ -25168,56 +25240,117 @@ const App = ()=>{
                             children: "Join Room"
                         }, void 0, false, {
                             fileName: "App.js",
-                            lineNumber: 177,
+                            lineNumber: 212,
                             columnNumber: 13
                         }, undefined)
                     ]
                 }, void 0, true, {
                     fileName: "App.js",
-                    lineNumber: 157,
+                    lineNumber: 176,
                     columnNumber: 11
                 }, undefined) : /*#__PURE__*/ (0, _jsxDevRuntime.jsxDEV)("div", {
                     style: {
                         display: "flex",
-                        flexDirection: "column",
+                        flexDirection: "row",
                         alignItems: "center",
-                        marginBottom: 24
+                        marginBottom: 24,
+                        gap: 24
                     },
                     children: [
-                        /*#__PURE__*/ (0, _jsxDevRuntime.jsxDEV)("video", {
-                            ref: localVideoRef,
-                            autoPlay: true,
-                            muted: true,
-                            playsInline: true,
+                        /*#__PURE__*/ (0, _jsxDevRuntime.jsxDEV)("div", {
                             style: {
-                                width: 200,
-                                borderRadius: 8,
-                                marginBottom: 12,
-                                background: "#222"
-                            }
-                        }, void 0, false, {
+                                position: "relative"
+                            },
+                            children: [
+                                /*#__PURE__*/ (0, _jsxDevRuntime.jsxDEV)("video", {
+                                    ref: remoteVideoRef,
+                                    autoPlay: true,
+                                    playsInline: true,
+                                    style: {
+                                        width: 360,
+                                        height: 270,
+                                        borderRadius: 12,
+                                        background: "#222"
+                                    }
+                                }, void 0, false, {
+                                    fileName: "App.js",
+                                    lineNumber: 233,
+                                    columnNumber: 15
+                                }, undefined),
+                                /*#__PURE__*/ (0, _jsxDevRuntime.jsxDEV)("div", {
+                                    style: {
+                                        position: "absolute",
+                                        bottom: 8,
+                                        left: 8,
+                                        color: "#fff",
+                                        background: "rgba(0,0,0,0.5)",
+                                        borderRadius: 4,
+                                        padding: "2px 8px",
+                                        fontSize: 16
+                                    },
+                                    children: remoteName
+                                }, void 0, false, {
+                                    fileName: "App.js",
+                                    lineNumber: 234,
+                                    columnNumber: 15
+                                }, undefined)
+                            ]
+                        }, void 0, true, {
                             fileName: "App.js",
-                            lineNumber: 196,
+                            lineNumber: 232,
                             columnNumber: 13
                         }, undefined),
-                        /*#__PURE__*/ (0, _jsxDevRuntime.jsxDEV)("video", {
-                            ref: remoteVideoRef,
-                            autoPlay: true,
-                            playsInline: true,
+                        /*#__PURE__*/ (0, _jsxDevRuntime.jsxDEV)("div", {
                             style: {
-                                width: 200,
-                                borderRadius: 8,
-                                background: "#222"
-                            }
-                        }, void 0, false, {
+                                position: "relative"
+                            },
+                            children: [
+                                /*#__PURE__*/ (0, _jsxDevRuntime.jsxDEV)("video", {
+                                    ref: localVideoRef,
+                                    autoPlay: true,
+                                    muted: true,
+                                    playsInline: true,
+                                    style: {
+                                        width: 120,
+                                        height: 90,
+                                        borderRadius: 8,
+                                        background: "#222"
+                                    }
+                                }, void 0, false, {
+                                    fileName: "App.js",
+                                    lineNumber: 238,
+                                    columnNumber: 15
+                                }, undefined),
+                                /*#__PURE__*/ (0, _jsxDevRuntime.jsxDEV)("div", {
+                                    style: {
+                                        position: "absolute",
+                                        bottom: 4,
+                                        left: 4,
+                                        color: "#fff",
+                                        background: "rgba(0,0,0,0.5)",
+                                        borderRadius: 4,
+                                        padding: "2px 8px",
+                                        fontSize: 12
+                                    },
+                                    children: [
+                                        name,
+                                        " (You)"
+                                    ]
+                                }, void 0, true, {
+                                    fileName: "App.js",
+                                    lineNumber: 239,
+                                    columnNumber: 15
+                                }, undefined)
+                            ]
+                        }, void 0, true, {
                             fileName: "App.js",
-                            lineNumber: 197,
+                            lineNumber: 237,
                             columnNumber: 13
                         }, undefined)
                     ]
                 }, void 0, true, {
                     fileName: "App.js",
-                    lineNumber: 195,
+                    lineNumber: 230,
                     columnNumber: 11
                 }, undefined),
                 /*#__PURE__*/ (0, _jsxDevRuntime.jsxDEV)("div", {
@@ -25244,7 +25377,7 @@ const App = ()=>{
                             children: "Start Recording"
                         }, void 0, false, {
                             fileName: "App.js",
-                            lineNumber: 207,
+                            lineNumber: 250,
                             columnNumber: 11
                         }, undefined),
                         /*#__PURE__*/ (0, _jsxDevRuntime.jsxDEV)("button", {
@@ -25263,7 +25396,7 @@ const App = ()=>{
                             children: "Stop Recording"
                         }, void 0, false, {
                             fileName: "App.js",
-                            lineNumber: 218,
+                            lineNumber: 261,
                             columnNumber: 11
                         }, undefined),
                         /*#__PURE__*/ (0, _jsxDevRuntime.jsxDEV)("button", {
@@ -25282,13 +25415,13 @@ const App = ()=>{
                             children: "Upload Recording"
                         }, void 0, false, {
                             fileName: "App.js",
-                            lineNumber: 229,
+                            lineNumber: 272,
                             columnNumber: 11
                         }, undefined)
                     ]
                 }, void 0, true, {
                     fileName: "App.js",
-                    lineNumber: 201,
+                    lineNumber: 244,
                     columnNumber: 9
                 }, undefined),
                 mediaBlobUrl && /*#__PURE__*/ (0, _jsxDevRuntime.jsxDEV)("video", {
@@ -25302,22 +25435,22 @@ const App = ()=>{
                     }
                 }, void 0, false, {
                     fileName: "App.js",
-                    lineNumber: 242,
+                    lineNumber: 285,
                     columnNumber: 11
                 }, undefined)
             ]
         }, void 0, true, {
             fileName: "App.js",
-            lineNumber: 140,
+            lineNumber: 159,
             columnNumber: 7
         }, undefined)
     }, void 0, false, {
         fileName: "App.js",
-        lineNumber: 133,
+        lineNumber: 152,
         columnNumber: 5
     }, undefined);
 };
-_s(App, "LsSs/Te9JdlcnOj0GGzMc9JT87M=");
+_s(App, "iyvlti72s0qp3e/KbmqlojSO3XY=");
 _c = App;
 exports.default = App;
 var _c;
@@ -27636,6 +27769,6 @@ function $da9882e673ac146b$var$ErrorOverlay() {
     return null;
 }
 
-},{"@parcel/transformer-js/src/esmodule-helpers.js":"jnFvT"}]},["kxwl6","jOXmm"], "jOXmm", "parcelRequire33e7", {}, null, null, "http://localhost:1234")
+},{"@parcel/transformer-js/src/esmodule-helpers.js":"jnFvT"}]},["lpzWn","jOXmm"], "jOXmm", "parcelRequire33e7", {}, null, null, "http://localhost:3000")
 
 //# sourceMappingURL=client.e02fbd41.js.map

@@ -1,14 +1,11 @@
 {
-  "name": "interview-server",
+  "name": "signaling-server",
   "version": "1.0.0",
-  "main": "server.js",
+  "main": "signaling-server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node signaling-server.js"
   },
   "dependencies": {
-    "cors": "^2.8.5",
-    "express": "^4.18.2",
-    "multer": "^2.0.2",
     "ws": "^8.18.3"
   }
 }
