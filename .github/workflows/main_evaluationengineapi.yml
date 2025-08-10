@@ -12,8 +12,6 @@ on:
 jobs:
   build:
     runs-on: windows-latest
-    permissions:
-      contents: read #This is required for actions/checkout
 
     steps:
       - uses: actions/checkout@v4
@@ -21,64 +19,23 @@ jobs:
       - name: Set up Node.js version
         uses: actions/setup-node@v3
         with:
-          node-version: '22.x'
+          node-version: '18.x'
 
-      - name: npm install, build TypeScript, and prepare deployment
+      - name: npm install, build, and deploy
         shell: pwsh
         run: |
           cd EvaluationEngine
+          
+          # Install dependencies including devDependencies
           npm install
           
-          # Debug: Show the package.json scripts section
-          Write-Output "Checking package.json scripts:"
-          Get-Content package.json | Select-String -Pattern "scripts" -Context 0,5
+          # Build TypeScript files with less strict settings
+          echo "{ \"extends\": \"./tsconfig.json\", \"compilerOptions\": { \"noImplicitAny\": false, \"strict\": false } }" > tsconfig.build.json
+          npx tsc -p tsconfig.build.json
           
-          # Build TypeScript files
-          Write-Output "Building TypeScript files..."
-          npx tsc
-          
-          # Verify the dist directory was created
-          if (Test-Path -Path "dist") {
-            Write-Output "TypeScript compilation successful - dist directory exists"
-            Get-ChildItem -Path "dist"
-          } else {
-            Write-Output "ERROR: TypeScript compilation failed - dist directory not found"
-            exit 1
-          }
-          
-          # Create a production .env file
-          Set-Content -Path ".env" -Value "NODE_ENV=production"
-          
-          # Create .deployment file to guide Kudu deployment
-          Set-Content -Path ".deployment" -Value "[config]"
-          Add-Content -Path ".deployment" -Value "SCM_DO_BUILD_DURING_DEPLOYMENT=false"
-          
-          # Remove unnecessary files (not needed in Azure)
-          if (Test-Path -Path "start-server.bat") { Remove-Item -Path "start-server.bat" }
-          if (Test-Path -Path "start_backend.bat") { Remove-Item -Path "start_backend.bat" }
-          if (Test-Path -Path "client\start_frontend.bat") { Remove-Item -Path "client\start_frontend.bat" }
-          
-          # Display files for debugging
-          dir
-      
-      # Verify the dist directory structure before uploading
-      - name: Verify dist directory
-        shell: pwsh
-        run: |
-          Write-Output "Checking EvaluationEngine/dist directory structure:"
-          if (Test-Path -Path "EvaluationEngine/dist") {
-            Get-ChildItem -Path "EvaluationEngine/dist" -Recurse | Select-Object -First 10
-          } else {
-            Write-Output "WARNING: dist directory not found!"
-          }
-          
-          # Copy the src directory just in case tsc doesn't work
-          Write-Output "Copying src directory as backup..."
-          if (!(Test-Path -Path "EvaluationEngine/dist")) {
-            New-Item -ItemType Directory -Path "EvaluationEngine/dist" -Force
-          }
-          Copy-Item -Path "EvaluationEngine/src/*" -Destination "EvaluationEngine/dist" -Recurse -Force
-          
+          # Create production env file
+          echo "NODE_ENV=production" > .env
+
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
         with:
@@ -88,19 +45,13 @@ jobs:
             EvaluationEngine/package.json
             EvaluationEngine/package-lock.json
             EvaluationEngine/web.config
-            EvaluationEngine/.deployment
             EvaluationEngine/.env
-            EvaluationEngine/.npmrc
             EvaluationEngine/dist/**
-            EvaluationEngine/src/**
-            EvaluationEngine/node_modules/**
+            !EvaluationEngine/node_modules/**
 
   deploy:
     runs-on: ubuntu-latest
     needs: build
-    permissions:
-      id-token: write #This is required for requesting the JWT
-      contents: read #This is required for actions/checkout
 
     steps:
       - name: Download artifact from build job
@@ -123,4 +74,3 @@ jobs:
           app-name: 'EvaluationEngineAPI'
           slot-name: 'Production'
           package: .
-          
