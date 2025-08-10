@@ -540,8 +540,8 @@ class PriorityMatchingController {
                     // Step 10: Insert allocation record
                     console.log('Step 10: Inserting allocation record');
                     const allocationQuery = `
-          INSERT INTO Allocation (AllocationID, EmployeeID, ServiceOrderID, AllocationStartDate, AllocationEndDate, Status)
-          VALUES (@allocationId, @employeeId, @serviceOrderId, @allocationStartDate, NULL, 'Active')
+          INSERT INTO Allocation (AllocationID, EmployeeID, ServiceOrderID, AllocationStartDate, AllocationEndDate)
+          VALUES (@allocationId, @employeeId, @serviceOrderId, @allocationStartDate, NULL)
         `;
                     const allocationResult = yield transaction.request()
                         .input('allocationId', mssql_1.default.Int, nextAllocationId)

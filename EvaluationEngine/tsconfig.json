@@ -3,10 +3,8 @@
     "target": "ES6",
     "jsx": "react",
     "module": "commonjs",
-    "strict": false,            // Changed from true to false to allow compilation with 'any' types
-    "noImplicitAny": false,     // Added to allow implicit 'any' types
+    "strict": true,
     "esModuleInterop": true,
-  "allowSyntheticDefaultImports": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "outDir": "./dist",

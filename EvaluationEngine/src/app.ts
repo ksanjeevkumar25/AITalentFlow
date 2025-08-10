@@ -1,7 +1,7 @@
 
 // ...existing code...
 
-import express, { Request, Response, Router } from 'express';
+import express from 'express';
 import sql from 'mssql';
 import { dbConfig } from './config';
 import cors from 'cors';
@@ -15,29 +15,9 @@ import * as fs from 'fs';
 import * as path from 'path';
 
 const app = express();
-
-// Simple ping endpoint that doesn't depend on any configuration
-app.get('/ping', (req, res) => {
-    res.status(200).send('pong');
-});
-
 // Allow CORS for frontend
-let frontendUrl;
-try {
-    frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3001';
-} catch (err) {
-    console.error('Error setting frontendUrl:', err);
-    frontendUrl = 'http://localhost:3001'; // Default if there's an error
-}
-
-try {
-    app.use(cors({ origin: frontendUrl, credentials: true }));
-} catch (err) {
-    console.error('Error setting up CORS:', err);
-    // Simple CORS setup as fallback
-    app.use(cors());
-}
-
+const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3001';
+app.use(cors({ origin: frontendUrl, credentials: true }));
 const PORT = process.env.PORT || 3000;
 
 app.use(bodyParser.json());
@@ -49,74 +29,6 @@ app.get('/health', (req, res) => {
         message: 'Server is running',
         timestamp: new Date().toISOString()
     });
-});
-
-// Database connection test endpoint with detailed information
-app.get('/test-db-connection', async (req, res) => {
-    try {
-        // Check if environment variables exist
-        const envCheck = {
-            DB_USER: process.env.DB_USER ? "exists" : "missing",
-            DB_PASSWORD: process.env.DB_PASSWORD ? "exists" : "missing",
-            DB_SERVER: process.env.DB_SERVER ? "exists" : "missing",
-            DB_DATABASE: process.env.DB_DATABASE ? "exists" : "missing",
-            DB_INSTANCE: process.env.DB_INSTANCE ? "exists" : "missing",
-            DB_ENCRYPT: process.env.DB_ENCRYPT,
-            DB_TRUST_SERVER_CERTIFICATE: process.env.DB_TRUST_SERVER_CERTIFICATE
-        };
-        
-        // Check dbConfig values
-        const dbConfigTest = {
-            user: dbConfig.user || "undefined",
-            password: dbConfig.password ? "***" : "undefined", // Masked for security
-            server: dbConfig.server || "undefined",
-            database: dbConfig.database || "undefined",
-            options: {
-                encrypt: dbConfig.options ? dbConfig.options.encrypt : "undefined",
-                trustServerCertificate: dbConfig.options ? dbConfig.options.trustServerCertificate : "undefined",
-                instanceName: dbConfig.options ? dbConfig.options.instanceName || "undefined" : "undefined"
-            }
-        };
-        
-        // Send response before attempting connection
-        res.json({
-            message: 'Database config check',
-            environmentVars: envCheck,
-            configValues: dbConfigTest,
-            timestamp: new Date().toISOString()
-        });
-        
-        console.log("Environment check:", envCheck);
-        console.log("Config values:", JSON.stringify(dbConfigTest));
-    } catch (err) {
-        console.error('Test DB config error:', err);
-        res.status(500).json({ 
-            error: err instanceof Error ? err.message : "Unknown error",
-            stack: err instanceof Error ? err.stack : "No stack trace"
-        });
-    }
-});
-
-// Actual connection test
-app.get('/test-db-connect', async (req, res) => {
-    try {
-        // Try connection
-        const pool = await sql.connect(dbConfig);
-        const result = await pool.request().query('SELECT 1 as TestConnection');
-        res.json({
-            success: true,
-            message: 'Database connection successful',
-            result: result.recordset
-        });
-    } catch (err) {
-        console.error('DB Connection error:', err);
-        res.status(500).json({
-            success: false,
-            message: 'Database connection failed',
-            error: err instanceof Error ? err.message : "Unknown error",
-            stack: err instanceof Error ? err.stack : "No stack trace"
-        });
-    }
 });
 
 // Database health check endpoint
@@ -189,26 +101,7 @@ app.post('/login', async (req, res) => {
         return res.json({ success: true, message: 'Login successful.' });
     } catch (err) {
         console.error('Login error:', err);
-        // Send detailed error information for debugging
-        const errorMessage = err instanceof Error ? err.message : 'Unknown error';
-        const errorStack = err instanceof Error ? err.stack : 'No stack trace';
-        return res.status(500).json({ 
-            success: false, 
-            message: 'Server error.', 
-            error: errorMessage,
-            stack: errorStack,
-            dbConfig: {
-                server: dbConfig.server,
-                database: dbConfig.database,
-                user: dbConfig.user ? '***' : 'not set', // Hide sensitive info
-                password: dbConfig.password ? '***' : 'not set', // Hide sensitive info
-                options: {
-                    encrypt: dbConfig.options.encrypt,
-                    trustServerCertificate: dbConfig.options.trustServerCertificate,
-                    instanceName: dbConfig.options.instanceName || 'not set'
-                }
-            }
-        });
+        return res.status(500).json({ success: false, message: 'Server error.' });
     }
 });
 
