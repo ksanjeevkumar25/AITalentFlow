@@ -9,6 +9,9 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Configuration;
+using System.Net.Http;
+using System.Text;
+using Newtonsoft.Json;
 
 namespace LoginApp.Controllers
 {
@@ -99,6 +102,21 @@ namespace LoginApp.Controllers
                 return View("Index");
             }
 
+            // Call external API to extract skills from resume text
+            using var httpClient = new HttpClient();
+            var apiUrl = "https://skillapp-bjegbscuead7aea4.ukwest-01.azurewebsites.net/api/Interview/extract-skills-from-text";
+
+            // Send the resume text as a raw JSON string (not as an object)
+            var content = new StringContent(JsonConvert.SerializeObject(resumeText), Encoding.UTF8, "application/json");
+
+            // Make the API call
+            var response = await httpClient.PostAsync(apiUrl, content);
+            response.EnsureSuccessStatusCode();
+
+            // Parse the response (assuming it returns a JSON array of skills)
+            var responseString = await response.Content.ReadAsStringAsync();
+            var foundSkills = JsonConvert.DeserializeObject<List<string>>(responseString);
+
             // Read master skills from configuration
             var allPossibleSkills = _configuration.GetSection("MasterSkills").Get<List<string>>() ?? new List<string>();
 
@@ -108,12 +126,12 @@ namespace LoginApp.Controllers
                 .ToHashSet();
 
             // Find skills in resume that are in master list but NOT in DB
-            var foundSkills = allPossibleSkills
-                .Where(skill =>
-                    resumeText.IndexOf(skill, StringComparison.OrdinalIgnoreCase) >= 0
-                    //&& !dbSkills.Contains(skill.ToLowerInvariant())
-                    )
-                .ToList();
+            //foundSkills = foundSkills
+            //    .Where(skill =>
+            //        allPossibleSkills.Contains(skill, StringComparer.OrdinalIgnoreCase)
+            //        && !dbSkills.Contains(skill.ToLowerInvariant())
+            //        )
+            //    .ToList();
 
             // Insert new skills into Skill table and collect their SkillIDs
             var insertedSkillIds = new List<int>();

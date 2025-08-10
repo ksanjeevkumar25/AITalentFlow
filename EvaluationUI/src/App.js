@@ -42,6 +42,7 @@ function App() {
     const [evaluationNotes, setEvaluationNotes] = useState('');
     const [evaluationDecision, setEvaluationDecision] = useState('');
     const [TranscriptLLMResponse, setTranscriptLLMResponse] = useState('');
+    const [audioText, setAudioText] = useState('');
     const [showQuestionAnswersPopup, setShowQuestionAnswersPopup] = useState(false);
     const [popupTranscriptData, setPopupTranscriptData] = useState('');
     const [currentMimeType, setCurrentMimeType] = useState('audio/webm');
@@ -54,6 +55,7 @@ function App() {
         interviewer: '',
         serviceOrderId: 301,
         accountName: 'GlobalCorp Inc.',
+        ccaRole: '',
         date: '',
         time: '',
         notes: ''
@@ -76,20 +78,49 @@ function App() {
     // Set REACT_APP_API_URL in your .env file for your actual API endpoint
     // Example: REACT_APP_API_URL=http://your-api-domain.com
     const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://api.interviewportal.com';
+    const BASE_URL = 'http://localhost:8000';
+
+    // Function to calculate average rating from evaluationFeedback string
+    const calculateAverageRating = (evaluationFeedback) => {
+        if (!evaluationFeedback) return 0;
+        
+        try {
+            // Extract ratings using regex pattern
+            const ratingPattern = /(\w+(?:\s+\w+)*?):\s*(\d+)\/5/g;
+            const ratings = [];
+            let match;
+            
+            while ((match = ratingPattern.exec(evaluationFeedback)) !== null) {
+                const rating = parseInt(match[2]);
+                if (!isNaN(rating) && rating >= 0 && rating <= 5) {
+                    ratings.push(rating);
+                }
+            }
+            
+            if (ratings.length === 0) return 0;
+            
+            // Calculate average and round to 1 decimal place
+            const average = ratings.reduce((sum, rating) => sum + rating, 0) / ratings.length;
+            return Math.round(average * 10) / 10;
+        } catch (error) {
+            console.error('Error calculating average rating:', error);
+            return 0;
+        }
+    };
 
     // Update evaluation schedule status API
     const updateEvaluationScheduleStatus = async (serviceOrderId, employeeId, updateData) => {
         try {
             console.log('🔄 Updating evaluation schedule status...', { serviceOrderId, employeeId, updateData });
 
-            const response = await fetch(`${API_BASE_URL}/updateEvaluationScheduleStatus`, {
+            const response = await fetch(`${BASE_URL}/updateEvaluationScheduleStatus`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    ServiceOrderID: serviceOrderId,
-                    EmployeeID: employeeId,
+                    serviceOrderId: serviceOrderId,
+                    employeeId: employeeId,
                     ...updateData
                 })
             });
@@ -110,7 +141,7 @@ function App() {
     // Get question answers API
     const getQuestionAnswers = async (audioText) => {
         try {
-            audioText="What is dotnet? Dotnet is a software development framework created by Microsoft that allows developers to build and run applications on various platforms. It provides a set of libraries, tools, and runtime environments for building applications in languages like C#, F#, and VB.NET. Dotnet supports web, desktop, mobile, cloud, and gaming applications, making it a versatile choice for developers.";
+            
             console.log('🎯 Getting question answers from audio text...', { audioText });
 
             const response = await fetch(`https://aievaluationapi-f4breuawbkc6f3cm.uksouth-01.azurewebsites.net/api/Interview/extract-qa`, {
@@ -138,21 +169,43 @@ function App() {
     // Get evaluation schedule status API
     const getEvaluationScheduleStatus = async (serviceOrderId, employeeId) => {
         try {
+            const processedServiceOrderId = parseInt(serviceOrderId) || serviceOrderId;
+            const processedEmployeeId = parseInt(employeeId) || employeeId;
+            
             console.log('📊 Getting evaluation schedule status...', { serviceOrderId, employeeId });
+            console.log('📊 Query parameters:', { serviceOrderId: processedServiceOrderId, employeeId: processedEmployeeId });
 
-            const response = await fetch(`${API_BASE_URL}/getEvaluationScheduleStatus`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    ServiceOrderID: serviceOrderId,
-                    EmployeeID: employeeId
-                })
+            // Build query parameters for GET request
+            const queryParams = new URLSearchParams({
+                serviceOrderId: processedServiceOrderId,
+                employeeId: processedEmployeeId
             });
 
+            const url = `${BASE_URL}/getEvaluationScheduleStatus?${queryParams.toString()}`;
+            console.log('📊 GET URL:', url);
+
+            const response = await fetch(url, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            });
+
+            console.log('📊 Response status:', response.status);
+            console.log('📊 Response headers:', response.headers);
+
             if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
+                // Try to get more detailed error information
+                let errorDetails;
+                try {
+                    errorDetails = await response.json();
+                    console.error('📊 API Error Details:', errorDetails);
+                } catch (parseError) {
+                    const errorText = await response.text();
+                    console.error('📊 API Error Text:', errorText);
+                    errorDetails = { message: errorText };
+                }
+                throw new Error(`HTTP ${response.status}: ${errorDetails.message || response.statusText}`);
             }
 
             const result = await response.json();
@@ -171,7 +224,7 @@ function App() {
             setIsLoadingScheduled(true);
             setScheduledError(null);
 
-            const response = await fetch('http://localhost:8000/evaluationSchedules', {
+            const response = await fetch(`${BASE_URL}/evaluationSchedules?evaluation_status=Scheduled`, {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
@@ -210,7 +263,7 @@ function App() {
             // More detailed error message
             let detailedError = error.message;
             if (error.message.includes('Failed to fetch')) {
-                detailedError = 'Cannot connect to API server. Is the server running on http://localhost:8000?';
+                detailedError = `Cannot connect to API server. Is the server running on ${BASE_URL}?`;
             }
 
             setScheduledError(detailedError);
@@ -221,7 +274,7 @@ function App() {
                     id: 1,
                     employeeId: 'EMP001',
                     employeeName: 'John Smith',
-                    interviewerId: 'INT101',
+                    cognizantInterviewer1ID: 'INT101',
                     interviewerName: 'Jane Wilson',
                     evaluationDateTime: '2024-01-20 10:00 AM',
                     evaluationType: 'Technical Interview',
@@ -231,7 +284,7 @@ function App() {
                     id: 2,
                     employeeId: 'EMP002',
                     employeeName: 'Sarah Johnson',
-                    interviewerId: 'INT102',
+                    cognizantInterviewer1ID: 'INT102',
                     interviewerName: 'Mike Chen',
                     evaluationDateTime: '2024-01-22 2:30 PM',
                     evaluationType: 'System Design',
@@ -256,7 +309,7 @@ function App() {
             setIsLoadingCompleted(true);
             setCompletedError(null);
 
-            const response = await fetch('http://localhost:8000/completedInterviews', {
+            const response = await fetch(`${BASE_URL}/completedInterviews`, {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
@@ -294,7 +347,7 @@ function App() {
             // More detailed error message
             let detailedError = error.message;
             if (error.message.includes('Failed to fetch')) {
-                detailedError = 'Cannot connect to API server. Is the server running on http://localhost:8000?';
+                detailedError = `Cannot connect to API server. Is the server running on ${BASE_URL}?`;
             }
 
             setCompletedError(detailedError);
@@ -305,10 +358,14 @@ function App() {
                     id: 1,
                     candidateName: 'Emily Davis',
                     position: 'Backend Developer',
+                    evaluationDateTime: '2024-01-15 3:00 PM',
                     date: '2024-01-15',
                     time: '3:00 PM',
-                    interviewType: 'Technical Interview',
+                    evaluationType: 'Technical Interview',
+                    evaluationDuration: '45 min',
                     duration: '45 min',
+                    evaluationFeedback: 'Evaluation completed with Selected decision. Ratings: Technical: 4/5, Communication: 5/5, Problem Solving: 4/5, Cultural Fit: 4/5, Leadership: 4/5',
+                    finalStatus: 'Selected',
                     rating: 4.2,
                     status: 'Hired'
                 },
@@ -316,10 +373,14 @@ function App() {
                     id: 2,
                     candidateName: 'Alex Rodriguez',
                     position: 'Product Manager',
+                    evaluationDateTime: '2024-01-18 1:00 PM',
                     date: '2024-01-18',
                     time: '1:00 PM',
-                    interviewType: 'Behavioral Interview',
+                    evaluationType: 'Behavioral Interview',
+                    evaluationDuration: '60 min',
                     duration: '60 min',
+                    evaluationFeedback: 'Evaluation completed with Hold decision. Ratings: Technical: 3/5, Communication: 4/5, Problem Solving: 3/5, Cultural Fit: 4/5, Leadership: 3/5',
+                    finalStatus: 'Hold',
                     rating: 3.8,
                     status: 'Under Review'
                 }
@@ -342,7 +403,7 @@ function App() {
             setIsLoadingEvaluation(true);
             setEvaluationError(null);
 
-            const response = await fetch('http://localhost:8000/pendingEvaluations', {
+            const response = await fetch(`${BASE_URL}/pendingEvaluations`, {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
@@ -380,7 +441,7 @@ function App() {
             // More detailed error message
             let detailedError = error.message;
             if (error.message.includes('Failed to fetch')) {
-                detailedError = 'Cannot connect to API server. Is the server running on http://localhost:8000?';
+                detailedError = `Cannot connect to API server. Is the server running on ${BASE_URL}?`;
             }
 
             setEvaluationError(detailedError);
@@ -391,11 +452,12 @@ function App() {
                     id: 1,
                     candidateName: 'Robert Johnson',
                     position: 'Senior Frontend Developer',
+                    evaluationDateTime: '2024-01-19 2:00 PM',
                     interviewDate: '2024-01-19',
                     interviewTime: '2:00 PM',
-                    interviewType: 'Technical Interview',
-                    interviewer: 'Jane Smith',
-                    duration: '60 min',
+                    evaluationType: 'Technical Interview',
+                    interviewerName: 'Jane Smith',
+                    duration: '30 min',
                     status: 'Awaiting Evaluation',
                     interviewNotes: 'Candidate showed strong technical skills in React and JavaScript. Good communication and problem-solving approach.',
                     urgency: 'High'
@@ -404,37 +466,40 @@ function App() {
                     id: 2,
                     candidateName: 'Maria Garcia',
                     position: 'Full Stack Developer',
+                    evaluationDateTime: '2024-01-18 11:30 AM',
                     interviewDate: '2024-01-18',
                     interviewTime: '11:30 AM',
-                    interviewType: 'System Design',
-                    interviewer: 'Tom Wilson',
-                    duration: '90 min',
+                    evaluationType: 'System Design',
+                    interviewerName: 'Tom Wilson',
+                    duration: '30 min',
                     status: 'Awaiting Evaluation',
                     interviewNotes: 'Excellent system design skills. Proposed scalable architecture for the given problem.',
-                    urgency: 'Medium'
+                    urgency: 'High'
                 },
                 {
                     id: 3,
                     candidateName: 'David Chen',
                     position: 'Backend Developer',
+                    evaluationDateTime: '2024-01-17 4:15 PM',
                     interviewDate: '2024-01-17',
                     interviewTime: '4:15 PM',
-                    interviewType: 'Coding Challenge',
-                    interviewer: 'Sarah Lee',
-                    duration: '75 min',
+                    evaluationType: 'Coding Challenge',
+                    interviewerName: 'Sarah Lee',
+                    duration: '30 min',
                     status: 'Awaiting Evaluation',
                     interviewNotes: 'Solid coding skills, clean code structure. Completed the challenge within time limit.',
-                    urgency: 'Low'
+                    urgency: 'High'
                 },
                 {
                     id: 4,
                     candidateName: 'Lisa Wang',
                     position: 'DevOps Engineer',
+                    evaluationDateTime: '2024-01-16 10:00 AM',
                     interviewDate: '2024-01-16',
                     interviewTime: '10:00 AM',
-                    interviewType: 'Technical Interview',
-                    interviewer: 'Mike Johnson',
-                    duration: '45 min',
+                    evaluationType: 'Technical Interview',
+                    interviewerName: 'Mike Johnson',
+                    duration: '30 min',
                     status: 'Awaiting Evaluation',
                     interviewNotes: 'Strong knowledge of CI/CD pipelines and cloud infrastructure. Good troubleshooting skills.',
                     urgency: 'High'
@@ -452,29 +517,45 @@ function App() {
     };
 
     // Fetch employees from API
-    const fetchEmployees = async () => {
+    const fetchEmployees = async (serviceOrderId = null) => {
         try {
             setIsLoadingEmployees(true);
             setEmployeesError(null);
 
+            // Build URLs with serviceOrderId as query parameter if provided
+            const buildUrl = (baseUrl) => {
+                if (serviceOrderId) {
+                    const queryParams = new URLSearchParams({ serviceOrderId: serviceOrderId });
+                    return `${baseUrl}?${queryParams.toString()}`;
+                }
+                return baseUrl;
+            };
+
             // Try different possible endpoints/methods
             let response;
             const possibleEndpoints = [
-                { url: 'http://localhost:8000/employees', method: 'GET' },
-                { url: 'http://localhost:8000/api/employees', method: 'GET' },
-                { url: 'http://localhost:8000/employees', method: 'POST' },
-                { url: 'http://localhost:8000/api/employees', method: 'POST' }
+                { url: buildUrl(`${BASE_URL}/employees`), method: 'GET' },
+                { url: buildUrl(`${BASE_URL}/api/employees`), method: 'GET' },
+                { url: buildUrl(`${BASE_URL}/employees`), method: 'POST' },
+                { url: buildUrl(`${BASE_URL}/api/employees`), method: 'POST' }
             ];
+
+            console.log('📋 Fetching employees with serviceOrderId:', serviceOrderId);
+            console.log('📋 Trying endpoints:', possibleEndpoints.map(ep => `${ep.method} ${ep.url}`));
 
             let lastError;
             for (const endpoint of possibleEndpoints) {
                 try {
+                    const requestBody = endpoint.method === 'POST' ? 
+                        (serviceOrderId ? JSON.stringify({ serviceOrderId }) : JSON.stringify({})) : 
+                        undefined;
+
                     response = await fetch(endpoint.url, {
                         method: endpoint.method,
                         headers: {
                             'Content-Type': 'application/json',
                         },
-                        ...(endpoint.method === 'POST' && { body: JSON.stringify({}) })
+                        ...(requestBody && { body: requestBody })
                     });
 
                     if (response.ok) {
@@ -509,7 +590,7 @@ function App() {
             // More detailed error message
             let detailedError = error.message;
             if (error.message.includes('Failed to fetch')) {
-                detailedError = 'Cannot connect to API server. Is the server running on http://localhost:8000?';
+                detailedError = `Cannot connect to API server. Is the server running on ${BASE_URL}?`;
             }
 
             setEmployeesError(detailedError);
@@ -529,12 +610,21 @@ function App() {
     };
 
     // Fetch candidates from API
-    const fetchCandidates = async () => {
+    const fetchCandidates = async (serviceOrderId = null) => {
         try {
             setIsLoadingCandidates(true);
             setCandidatesError(null);
 
-            const response = await fetch('http://localhost:8000/candidateToSchedule', {
+            // Build URL with serviceOrderId as query parameter if provided
+            let url = `${BASE_URL}/candidateToSchedule`;
+            if (serviceOrderId) {
+                const queryParams = new URLSearchParams({ serviceOrderId: serviceOrderId });
+                url = `${url}?${queryParams.toString()}`;
+            }
+
+            console.log('📋 Fetching candidates with URL:', url);
+
+            const response = await fetch(url, {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
@@ -560,21 +650,21 @@ function App() {
             // More detailed error message
             let detailedError = error.message;
             if (error.message.includes('Failed to fetch')) {
-                detailedError = 'Cannot connect to API server. Is the server running on http://localhost:8000?';
+                detailedError = `Cannot connect to API server. Is the server running on ${BASE_URL}?`;
             }
 
             setCandidatesError(detailedError);
 
             // Fallback to mock data for demo purposes
             setCandidates([
-                { employee_id: 101, first_name: 'John', last_name: 'Smith', emailId: 'john.smith@email.com', phone: '+1-555-0101' },
-                { employee_id: 102, first_name: 'Sarah', last_name: 'Johnson', emailId: 'sarah.johnson@email.com', phone: '+1-555-0102' },
-                { employee_id: 103, first_name: 'Mike', last_name: 'Chen', emailId: 'mike.chen@email.com', phone: '+1-555-0103' },
-                { employee_id: 104, first_name: 'Emily', last_name: 'Davis', emailId: 'emily.davis@email.com', phone: '+1-555-0104' },
-                { employee_id: 105, first_name: 'Alex', last_name: 'Rodriguez', emailId: 'alex.rodriguez@email.com', phone: '+1-555-0105' },
-                { employee_id: 106, first_name: 'Lisa', last_name: 'Wang', emailId: 'lisa.wang@email.com', phone: '+1-555-0106' },
-                { employee_id: 107, first_name: 'David', last_name: 'Brown', emailId: 'david.brown@email.com', phone: '+1-555-0107' },
-                { employee_id: 108, first_name: 'Maria', last_name: 'Garcia', emailId: 'maria.garcia@email.com', phone: '+1-555-0108' }
+                { candidate_id: 101, first_name: 'John', last_name: 'Smith', emailId: 'john.smith@email.com', phone: '+1-555-0101' },
+                { candidate_id: 102, first_name: 'Sarah', last_name: 'Johnson', emailId: 'sarah.johnson@email.com', phone: '+1-555-0102' },
+                { candidate_id: 103, first_name: 'Mike', last_name: 'Chen', emailId: 'mike.chen@email.com', phone: '+1-555-0103' },
+                { candidate_id: 104, first_name: 'Emily', last_name: 'Davis', emailId: 'emily.davis@email.com', phone: '+1-555-0104' },
+                { candidate_id: 105, first_name: 'Alex', last_name: 'Rodriguez', emailId: 'alex.rodriguez@email.com', phone: '+1-555-0105' },
+                { candidate_id: 106, first_name: 'Lisa', last_name: 'Wang', emailId: 'lisa.wang@email.com', phone: '+1-555-0106' },
+                { candidate_id: 107, first_name: 'David', last_name: 'Brown', emailId: 'david.brown@email.com', phone: '+1-555-0107' },
+                { candidate_id: 108, first_name: 'Maria', last_name: 'Garcia', emailId: 'maria.garcia@email.com', phone: '+1-555-0108' }
             ]);
         } finally {
             setIsLoadingCandidates(false);
@@ -587,7 +677,7 @@ function App() {
             setIsLoadingServiceOrders(true);
             setServiceOrdersError(null);
 
-            const response = await fetch('http://localhost:8000/serviceorders', {
+            const response = await fetch(`${BASE_URL}/serviceorders`, {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
@@ -613,19 +703,19 @@ function App() {
             // More detailed error message
             let detailedError = error.message;
             if (error.message.includes('Failed to fetch')) {
-                detailedError = 'Cannot connect to API server. Is the server running on http://localhost:8000?';
+                detailedError = `Cannot connect to API server. Is the server running on ${BASE_URL}?`;
             }
 
             setServiceOrdersError(detailedError);
 
             // Fallback to mock data for demo purposes
             setServiceOrders([
-                { id: 301, serviceOrderId: 301, accountName: 'GlobalCorp Inc.' },
-                { id: 'SO-001', serviceOrderId: 'SO-001', accountName: 'ABC Corporation' },
-                { id: 'SO-002', serviceOrderId: 'SO-002', accountName: 'XYZ Industries' },
-                { id: 'SO-003', serviceOrderId: 'SO-003', accountName: 'TechCorp Solutions' },
-                { id: 'SO-004', serviceOrderId: 'SO-004', accountName: 'Global Enterprises' },
-                { id: 'SO-005', serviceOrderId: 'SO-005', accountName: 'Innovation Labs' }
+                { id: 301, serviceOrderId: 301, accountName: 'GlobalCorp Inc.', ccaRole: 'Technical Lead' },
+                { id: 'SO-001', serviceOrderId: 'SO-001', accountName: 'ABC Corporation', ccaRole: 'Solution Architect' },
+                { id: 'SO-002', serviceOrderId: 'SO-002', accountName: 'XYZ Industries', ccaRole: 'Project Manager' },
+                { id: 'SO-003', serviceOrderId: 'SO-003', accountName: 'TechCorp Solutions', ccaRole: 'Senior Developer' },
+                { id: 'SO-004', serviceOrderId: 'SO-004', accountName: 'Global Enterprises', ccaRole: 'Business Analyst' },
+                { id: 'SO-005', serviceOrderId: 'SO-005', accountName: 'Innovation Labs', ccaRole: 'DevOps Engineer' }
             ]);
         } finally {
             setIsLoadingServiceOrders(false);
@@ -1087,7 +1177,7 @@ function App() {
             await new Promise(resolve => setTimeout(resolve, 1000));
 
             // Return placeholder transcript text
-            return "Sample interview transcript: Candidate discussed their technical experience, problem-solving approach, and career goals. The interview covered various topics including software development, teamwork, and project management.";
+            return "What is the difference between HashMap and ArrayList?ArrayList implements the List interface and is a collection of elements, while HashMap implements the Map interface and stores data as key-value pairs.What is a stream in Java?A stream in Java, introduced in Java 8, represents a sequence of elements supporting sequential and parallel operations. It doesn't store data but operates on data from a source like a collection or array.What is the Spring Boot application annotation in a Spring Boot application?The Spring Boot application annotation combines configuration, enables auto-configuration, and component scanning. It is the main entry point for a Spring Boot application.";
         } catch (error) {
             throw new Error('Failed to process audio transcription');
         }
@@ -1131,6 +1221,55 @@ function App() {
         console.log(`Audio recording saved successfully as ${fileExtension} format`);
     };
 
+    // Helper function to update evaluation schedule status after processing
+    const updateEvaluationScheduleAfterProcessing = async (transcriptText, llmResponse) => {
+        if (currentInterviewDetails) {
+            const serviceOrderId = currentInterviewDetails.serviceOrderId || currentInterviewDetails.serviceOrderID || 301; // Default fallback
+            const employeeId = currentInterviewDetails.employeeId || currentInterviewDetails.EmployeeID;
+
+            if (employeeId) {
+                try {
+                    // Prepare the data for API call
+                    const defaultQuestionAnswers = [
+                        {
+                            "question": "What is the difference between HashMap and ArrayList?",
+                            "answer": "ArrayList implements the List interface and is a collection of elements, while HashMap implements the Map interface and stores data as key-value pairs.",
+                            "isCorrect": true
+                        },
+                        {
+                            "question": "What is a stream in Java?",
+                            "answer": "A stream in Java, introduced in Java 8, represents a sequence of elements supporting sequential and parallel operations. It doesn't store data but operates on data from a source like a collection or array.",
+                            "isCorrect": true
+                        },
+                        {
+                            "question": "What is the Spring Boot application annotation in a Spring Boot application?",
+                            "answer": "The Spring Boot application annotation combines configuration, enables auto-configuration, and component scanning. It is the main entry point for a Spring Boot application.",
+                            "isCorrect": true
+                        }
+                    ];
+                    console.log('llmResponse', llmResponse);
+                    const updateData = {
+                        evaluationTranscription: transcriptText || 'No transcript available',
+                        audioRecording: audioChunks.length > 0,
+                        videoRecording: true,
+                        transcriptLlmResponse: JSON.stringify(llmResponse) || JSON.stringify(defaultQuestionAnswers),
+                        finalStatus: 'Pending'
+                    };
+
+                    // Call the API
+                    const result = await updateEvaluationScheduleStatus(serviceOrderId, employeeId, updateData);
+                    console.log('📝 Evaluation schedule updated successfully after processing:', result);
+                } catch (error) {
+                    console.error('❌ Error updating evaluation schedule after processing:', error);
+                }
+            } else {
+                console.warn('⚠️ No employee ID found in current interview details');
+            }
+        } else {
+            console.warn('⚠️ No current interview details available for API update');
+        }
+    };
+
     const stopInterview = async () => {
         console.log('Stopping interview...');
         console.log('MediaRecorder exists:', !!mediaRecorderRef.current);
@@ -1148,15 +1287,25 @@ function App() {
                     // For now, setting a placeholder response
                     const audioText = await processAudioTranscription(audioBlob);
                     console.log('Audio transcript captured:', audioText);
-
+                    //set audioText to the audioText
+                    setAudioText(audioText);
+                    //set TranscriptLLMResponse to the audioText
+                    //setTranscriptLLMResponse(audioText);
                     // Call getQuestionAnswers API with audioText
                     try {
                         const questionAnswersResult = await getQuestionAnswers(audioText);
                         console.log('Question answers obtained:', questionAnswersResult);
                         setTranscriptLLMResponse(questionAnswersResult);
+                        
+                        // Update evaluation schedule status after successful transcription and question answers
+                        await updateEvaluationScheduleAfterProcessing(audioText, questionAnswersResult);
                     } catch (questionAnswersError) {
                         console.error('Error getting question answers:', questionAnswersError);
-                        setTranscriptLLMResponse('Error: Unable to get question answers');
+                        const errorMessage = 'Error: Unable to get question answers';
+                        setTranscriptLLMResponse(errorMessage);
+                        
+                        // Update evaluation schedule status even if question answers failed
+                        await updateEvaluationScheduleAfterProcessing(audioText, errorMessage);
                     }
                 } catch (error) {
                     console.error('Error processing audio transcription:', error);
@@ -1179,12 +1328,18 @@ function App() {
 
                 // Still try to call the question answers API with fallback text
                 getQuestionAnswers(fallbackTranscript)
-                    .then(questionAnswersResult => {
+                    .then(async questionAnswersResult => {
                         console.log('Question answers obtained with fallback:', questionAnswersResult);
                         setTranscriptLLMResponse(questionAnswersResult);
+                        // Update evaluation schedule status after fallback processing
+                        await updateEvaluationScheduleAfterProcessing(fallbackTranscript, questionAnswersResult);
                     })
-                    .catch(error => {
+                    .catch(async error => {
                         console.error('Error getting question answers with fallback:', error);
+                        const errorMessage = 'Error: Unable to get question answers with fallback';
+                        setTranscriptLLMResponse(errorMessage);
+                        // Update evaluation schedule status even if fallback failed
+                        await updateEvaluationScheduleAfterProcessing(fallbackTranscript, errorMessage);
                     });
             }
         }
@@ -1205,38 +1360,7 @@ function App() {
         setIsAudioOn(false);
         setParticipants([]);
 
-        // Call updateEvaluationScheduleStatus API
-        if (currentInterviewDetails) {
-            const serviceOrderId = currentInterviewDetails.serviceOrderId || currentInterviewDetails.serviceOrderID || 301; // Default fallback
-            const employeeId = currentInterviewDetails.employeeId || currentInterviewDetails.EmployeeID;
 
-            if (employeeId) {
-                try {
-                    // Prepare the data for API call
-                    const updateData = {
-                        EvaluationTranscription: TranscriptLLMResponse || 'No transcript available',
-                        AudioRecording: audioChunks.length > 0 ? 'Audio recording available' : 'No audio recording',
-                        VideoRecording: 'Video recording available', // Placeholder - would contain actual video data
-                        TranscriptLLMResponse: TranscriptLLMResponse || ''
-                    };
-
-                    // Call the API
-                    updateEvaluationScheduleStatus(serviceOrderId, employeeId, updateData)
-                        .then(result => {
-                            console.log('📝 Evaluation schedule updated successfully');
-                        })
-                        .catch(error => {
-                            console.error('❌ Failed to update evaluation schedule:', error);
-                        });
-                } catch (error) {
-                    console.error('❌ Error preparing evaluation schedule update:', error);
-                }
-            } else {
-                console.warn('⚠️ No employee ID found in current interview details');
-            }
-        } else {
-            console.warn('⚠️ No current interview details available for API update');
-        }
 
         // Clear interview details when stopping interview
         setCurrentInterviewDetails(null);
@@ -1274,7 +1398,9 @@ function App() {
         try {
             // Extract ServiceOrderID and EmployeeID from candidate data
             const serviceOrderId = candidate.serviceOrderId || candidate.serviceOrderID || 301; // Default fallback
-            const employeeId = candidate.EmployeeID || candidate.candidateEmployeeId || candidate.id||101 // Default fallback;
+            const employeeId = candidate.EmployeeID || candidate.candidateEmployeeId || candidate.id || 101; // Default fallback
+
+            console.log('🔍 Calling getEvaluationScheduleStatus with:', { serviceOrderId, employeeId, candidate });
 
             if (!employeeId) {
                 alert('Employee ID not found for this candidate');
@@ -1285,7 +1411,7 @@ function App() {
             const result = await getEvaluationScheduleStatus(serviceOrderId, employeeId);
 
             // Extract transcriptLLMResponse from the result
-            const transcriptData = result.transcriptLLMResponse || result.TranscriptLLMResponse || 'No transcript data available';
+            const transcriptData = result.data.transcriptLLMResponse || result.data.TranscriptLLMResponse || 'No transcript data available';
 
             // Set the data and show popup
             setPopupTranscriptData(transcriptData);
@@ -1323,8 +1449,8 @@ function App() {
                 try {
                     // Prepare the data for API call
                     const updateData = {
-                        FinalStatus: decision,
-                        EvaluationFeedback: evaluationNotes || `Evaluation completed with ${decision} decision. Ratings: Technical: ${evaluationRatings.technical}/5, Communication: ${evaluationRatings.communication}/5, Problem Solving: ${evaluationRatings.problemSolving}/5, Cultural Fit: ${evaluationRatings.culturalFit}/5, Leadership: ${evaluationRatings.leadership}/5`
+                        finalStatus: decision,
+                        evaluationFeedback: evaluationNotes || `Evaluation completed with ${decision} decision. Ratings: Technical: ${evaluationRatings.technical}/5, Communication: ${evaluationRatings.communication}/5, Problem Solving: ${evaluationRatings.problemSolving}/5, Cultural Fit: ${evaluationRatings.culturalFit}/5, Leadership: ${evaluationRatings.leadership}/5`
                     };
 
                     // Call the API
@@ -1361,6 +1487,7 @@ function App() {
             interviewer: '',
             serviceOrderId: 301,
             accountName: 'GlobalCorp Inc.',
+            ccaRole: '',
             date: '',
             time: '',
             notes: ''
@@ -1370,7 +1497,7 @@ function App() {
         setLinkGenerated(false);
         // Fetch data for dropdowns
         fetchEmployees();
-        fetchCandidates();
+        // Don't fetch candidates initially - they will be loaded when service order is selected
         fetchServiceOrders();
     };
 
@@ -1389,15 +1516,20 @@ function App() {
         }));
     };
 
-    const handleCandidateSelection = (candidateEmployeeId) => {
-        // Find the selected candidate by employee_id to get their details
-        const selectedCandidate = employees.find(candidate => candidate.employee_id.toString() === candidateEmployeeId.toString());
+    const handleCandidateSelection = (candidateId) => {
+        // Find the selected candidate by candidate_id to get their details from the filtered candidates list
+        const selectedCandidate = candidates.find(candidate => candidate.candidate_id.toString() === candidateId.toString());
 
-        if (selectedCandidate && candidateEmployeeId) {
+        if (selectedCandidate && candidateId) {
             const fullName = `${selectedCandidate.first_name} ${selectedCandidate.last_name}`;
+            console.log('📝 Selected candidate for service order:', {
+                serviceOrderId: newInterviewData.serviceOrderId,
+                candidateId: candidateId,
+                candidateName: fullName
+            });
             setNewInterviewData(prev => ({
                 ...prev,
-                candidateEmployeeId: candidateEmployeeId,
+                candidateEmployeeId: candidateId,
                 candidateName: fullName,
                 emailId: selectedCandidate.emailId || ''
             }));
@@ -1413,14 +1545,27 @@ function App() {
     };
 
     const handleServiceOrderSelection = (serviceOrderId) => {
-        // Find the selected service order to get the account name
+        // Find the selected service order to get the account name and CCA role
         const selectedServiceOrder = serviceOrders.find(order => order.serviceOrderId.toString() === serviceOrderId.toString());
 
         setNewInterviewData(prev => ({
             ...prev,
             serviceOrderId: serviceOrderId,
-            accountName: selectedServiceOrder ? selectedServiceOrder.accountName : ''
+            accountName: selectedServiceOrder ? selectedServiceOrder.accountName : '',
+            ccaRole: selectedServiceOrder ? selectedServiceOrder.ccaRole : ''
         }));
+
+        // Fetch candidates and employees for the selected service order
+        if (serviceOrderId && serviceOrderId !== '') {
+            console.log('🔄 Fetching candidates and employees for service order:', serviceOrderId);
+            fetchCandidates(serviceOrderId);
+            fetchEmployees(serviceOrderId);
+        } else {
+            // If no service order selected, fetch all candidates and employees
+            console.log('🔄 Fetching all candidates and employees (no service order filter)');
+            fetchCandidates();
+            fetchEmployees();
+        }
     };
 
     const submitScheduleInterview = async () => {
@@ -1434,9 +1579,9 @@ function App() {
         }
 
         try {
-            // Find the selected candidate and interviewer to get their employee IDs
-            const selectedCandidate = employees.find(emp =>
-                emp.employee_id.toString() === newInterviewData.candidateEmployeeId.toString()
+            // Find the selected candidate and interviewer to get their IDs
+            const selectedCandidate = candidates.find(candidate =>
+                candidate.candidate_id.toString() === newInterviewData.candidateEmployeeId.toString()
             );
             const selectedInterviewer = employees.find(emp =>
                 emp.employee_id.toString() === newInterviewData.interviewer.toString()
@@ -1450,16 +1595,17 @@ function App() {
             // Prepare API payload
             const payload = {
                 service_order_id: newInterviewData.serviceOrderId ? newInterviewData.serviceOrderId.toString() : "",
-                employee_id: selectedCandidate.employee_id.toString(),
+                employee_id: selectedCandidate.candidate_id.toString(),
                 cognizant_evaluator_id: selectedInterviewer.employee_id.toString(),
                 evaluation_datetime: `${newInterviewData.date} ${newInterviewData.time}`,
-                evaluation_type: newInterviewData.interviewType || ""
+                evaluation_type: newInterviewData.interviewType || "",
+                final_status: "Scheduled"
             };
 
             console.log('Submitting interview to /evaluations API:', payload);
 
             // Call the /evaluations API
-            const response = await fetch('http://localhost:8000/evaluations', {
+            const response = await fetch(`${BASE_URL}/evaluations`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -1856,10 +2002,10 @@ Interview Panel`;
                                                             <p className="position">{candidate.position}</p>
                                                         </div>
                                                         <div className="interview-meta">
-                                                            <span className="date-time">📅 {candidate.interviewDate} at {candidate.interviewTime}</span>
-                                                            <span className="interview-type">🎯 {candidate.interviewType}</span>
-                                                            <span className="duration">⏱️ {candidate.duration}</span>
-                                                            <span className="interviewer">👤 {candidate.interviewer}</span>
+                                                            <span className="date-time">📅 {candidate.evaluationDateTime || `${candidate.interviewDate} at ${candidate.interviewTime}`}</span>
+                                                            <span className="interview-type">🎯 {candidate.evaluationType}</span>
+                                                            <span className="duration">⏱️ {candidate.duration || '30 min'}</span>
+                                                            <span className="interviewer">👤 {candidate.interviewerName}</span>
                                                             <span className={`urgency ${candidate.urgency}`}>
                                                                 {candidate.urgency === 'High' ? '🔥' : candidate.urgency === 'Medium' ? '⚠️' : '📝'} {candidate.urgency} Priority
                                                             </span>
@@ -1895,9 +2041,9 @@ Interview Panel`;
                                                     <h2>{selectedCandidateForEvaluation.candidateName}</h2>
                                                     <p className="position-title">{selectedCandidateForEvaluation.position}</p>
                                                     <div className="interview-summary">
-                                                        <span>📅 {selectedCandidateForEvaluation.interviewDate}</span>
-                                                        <span>🎯 {selectedCandidateForEvaluation.interviewType}</span>
-                                                        <span>👤 {selectedCandidateForEvaluation.interviewer}</span>
+                                                        <span>📅 {selectedCandidateForEvaluation.evaluationDateTime || `${selectedCandidateForEvaluation.interviewDate} at ${selectedCandidateForEvaluation.interviewTime}`}</span>
+                                                        <span>🎯 {selectedCandidateForEvaluation.evaluationType}</span>
+                                                        <span>👤 {selectedCandidateForEvaluation.interviewerName}</span>
                                                         <span className={`urgency ${selectedCandidateForEvaluation.urgency}`}>
                                                             {selectedCandidateForEvaluation.urgency === 'High' ? '🔥' : selectedCandidateForEvaluation.urgency === 'Medium' ? '⚠️' : '📝'} {selectedCandidateForEvaluation.urgency} Priority
                                                         </span>
@@ -2035,60 +2181,6 @@ Interview Panel`;
                             <div className="schedule-form-container">
                                 <div className="schedule-form">
                                     <div className="form-section">
-                                        <h3>Candidate Information</h3>
-                                        <div className="form-group">
-                                            <label>Candidate Name *</label>
-                                            {isLoadingCandidates ? (
-                                                <div className="form-input" style={{ display: 'flex', alignItems: 'center', color: '#6c757d' }}>
-                                                    <div className="loading-spinner" style={{ width: '16px', height: '16px', marginRight: '8px' }}></div>
-                                                    Loading candidates...
-                                                </div>
-                                            ) : candidatesError ? (
-                                                <div>
-                                                    <select className="form-select" disabled>
-                                                        <option>Failed to load candidates</option>
-                                                    </select>
-                                                    <small style={{ color: '#dc3545', fontSize: '0.875rem', marginTop: '4px', display: 'block' }}>
-                                                        {candidatesError} - Using fallback data
-                                                    </small>
-                                                </div>
-                                            ) : (
-                                                <select
-                                                    className="form-select"
-                                                    value={newInterviewData.candidateEmployeeId}
-                                                    onChange={(e) => handleCandidateSelection(e.target.value)}
-                                                >
-                                                    <option value="">Select Candidate</option>
-                                                    {employees.map(candidate => (
-                                                        <option key={candidate.employee_id} value={candidate.employee_id}>
-                                                            {candidate.first_name} {candidate.last_name}
-                                                        </option>
-                                                    ))}
-                                                </select>
-                                            )}
-                                        </div>
-
-                                        <div className="form-group">
-                                            <label>Position *</label>
-                                            <select
-                                                className="form-select"
-                                                value={newInterviewData.position}
-                                                onChange={(e) => handleScheduleInputChange('position', e.target.value)}
-                                            >
-                                                <option value="">Select Position</option>
-                                                <option value="Frontend Developer">Frontend Developer</option>
-                                                <option value="Backend Developer">Backend Developer</option>
-                                                <option value="Full Stack Developer">Full Stack Developer</option>
-                                                <option value="Data Scientist">Data Scientist</option>
-                                                <option value="Product Manager">Product Manager</option>
-                                                <option value="DevOps Engineer">DevOps Engineer</option>
-                                                <option value="UI/UX Designer">UI/UX Designer</option>
-                                                <option value="QA Engineer">QA Engineer</option>
-                                            </select>
-                                        </div>
-                                    </div>
-
-                                    <div className="form-section">
                                         <h3>Service Order Information</h3>
                                         <div className="form-group">
                                             <label>Service Order ID</label>
@@ -2136,6 +2228,84 @@ Interview Panel`;
                                                 Account name is automatically filled when you select a service order above
                                             </small>
                                         </div>
+
+                                        <div className="form-group">
+                                            <label>CCA Role</label>
+                                            <input
+                                                type="text"
+                                                placeholder="Auto-filled when service order is selected"
+                                                className="form-input"
+                                                value={newInterviewData.ccaRole}
+                                                readOnly
+                                                style={{ backgroundColor: '#f8f9fa', cursor: 'not-allowed' }}
+                                            />
+                                            <small style={{ color: '#6c757d', fontSize: '0.875rem', marginTop: '4px', display: 'block' }}>
+                                                CCA role is automatically filled when you select a service order above
+                                            </small>
+                                        </div>
+                                    </div>
+
+                                    <div className="form-section">
+                                        <h3>Candidate Information</h3>
+                                        <div className="form-group">
+                                            <label>Candidate Name *</label>
+                                            {!newInterviewData.serviceOrderId ? (
+                                                <div className="form-input" style={{ display: 'flex', alignItems: 'center', color: '#6c757d' }}>
+                                                    <span>Please select a Service Order first to load candidates</span>
+                                                </div>
+                                            ) : isLoadingCandidates ? (
+                                                <div className="form-input" style={{ display: 'flex', alignItems: 'center', color: '#6c757d' }}>
+                                                    <div className="loading-spinner" style={{ width: '16px', height: '16px', marginRight: '8px' }}></div>
+                                                    Loading candidates for service order {newInterviewData.serviceOrderId}...
+                                                </div>
+                                            ) : candidatesError ? (
+                                                <div>
+                                                    <select className="form-select" disabled>
+                                                        <option>Failed to load candidates</option>
+                                                    </select>
+                                                    <small style={{ color: '#dc3545', fontSize: '0.875rem', marginTop: '4px', display: 'block' }}>
+                                                        {candidatesError} - Using fallback data
+                                                    </small>
+                                                </div>
+                                            ) : (
+                                                <select
+                                                    className="form-select"
+                                                    value={newInterviewData.candidateEmployeeId}
+                                                    onChange={(e) => handleCandidateSelection(e.target.value)}
+                                                >
+                                                    <option value="">
+                                                        {candidates.length > 0 ? 'Select Candidate' : 'No candidates available for this service order'}
+                                                    </option>
+                                                    {candidates.map(candidate => (
+                                                        <option key={candidate.candidate_id} value={candidate.candidate_id}>
+                                                            {candidate.first_name} {candidate.last_name}
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                            )}
+                                            <small style={{ color: '#6c757d', fontSize: '0.875rem', marginTop: '4px', display: 'block' }}>
+                                                Candidates are filtered based on the selected service order
+                                            </small>
+                                        </div>
+
+                                        <div className="form-group">
+                                            <label>Position *</label>
+                                            <select
+                                                className="form-select"
+                                                value={newInterviewData.position}
+                                                onChange={(e) => handleScheduleInputChange('position', e.target.value)}
+                                            >
+                                                <option value="">Select Position</option>
+                                                <option value="Frontend Developer">Frontend Developer</option>
+                                                <option value="Backend Developer">Backend Developer</option>
+                                                <option value="Full Stack Developer">Full Stack Developer</option>
+                                                <option value="Data Scientist">Data Scientist</option>
+                                                <option value="Product Manager">Product Manager</option>
+                                                <option value="DevOps Engineer">DevOps Engineer</option>
+                                                <option value="UI/UX Designer">UI/UX Designer</option>
+                                                <option value="QA Engineer">QA Engineer</option>
+                                            </select>
+                                        </div>
                                     </div>
 
                                     <div className="form-section">
@@ -2181,15 +2351,19 @@ Interview Panel`;
 
                                         <div className="form-group">
                                             <label>Interviewer *</label>
-                                            {isLoadingCandidates ? (
+                                            {!newInterviewData.serviceOrderId ? (
+                                                <div className="form-input" style={{ display: 'flex', alignItems: 'center', color: '#6c757d' }}>
+                                                    <span>Please select a Service Order first to load interviewers</span>
+                                                </div>
+                                            ) : isLoadingEmployees ? (
                                                 <div className="form-input" style={{ display: 'flex', alignItems: 'center', color: '#6c757d' }}>
                                                     <div className="loading-spinner" style={{ width: '16px', height: '16px', marginRight: '8px' }}></div>
-                                                    Loading employees...
+                                                    Loading interviewers for service order {newInterviewData.serviceOrderId}...
                                                 </div>
                                             ) : employeesError ? (
                                                 <div>
                                                     <select className="form-select" disabled>
-                                                        <option>Failed to load employees</option>
+                                                        <option>Failed to load interviewers</option>
                                                     </select>
                                                     <small style={{ color: '#dc3545', fontSize: '0.875rem', marginTop: '4px', display: 'block' }}>
                                                         {employeesError} - Using fallback data
@@ -2201,15 +2375,19 @@ Interview Panel`;
                                                     value={newInterviewData.interviewer}
                                                     onChange={(e) => handleScheduleInputChange('interviewer', e.target.value)}
                                                 >
-                                                    <option value="">Select Interviewer</option>
-                                                    {employees.map(candidate => (
-                                                        <option key={candidate.employee_id} value={candidate.employee_id}>
-                                                            {candidate.first_name} {candidate.last_name}
+                                                    <option value="">
+                                                        {employees.length > 0 ? 'Select Interviewer' : 'No interviewers available for this service order'}
+                                                    </option>
+                                                    {employees.map(employee => (
+                                                        <option key={employee.employee_id} value={employee.employee_id}>
+                                                            {employee.first_name} {employee.last_name} - {employee.role || employee.department}
                                                         </option>
                                                     ))}
-
                                                 </select>
                                             )}
+                                            <small style={{ color: '#6c757d', fontSize: '0.875rem', marginTop: '4px', display: 'block' }}>
+                                                Interviewers are filtered based on the selected service order
+                                            </small>
                                         </div>
                                     </div>
 
@@ -2376,7 +2554,8 @@ Interview Panel`;
                                                         <div className="interview-meta">
                                                             <span className="date-time">📅 {interview.evaluationDateTime || `${interview.date} at ${interview.time}`}</span>
                                                             <span className="interview-type">🎯 {interview.evaluationType || interview.interviewType}</span>
-                                                            <span className="interviewer">👤 {interview.interviewerName || interview.interviewer} (ID: {interview.interviewerId})</span>
+                                                            <span className="service-order">📋 Service Order: {interview.serviceOrderId || 'N/A'}</span>
+                                                            <span className="interviewer">👤 {interview.interviewerName || interview.interviewer} (ID: {interview.cognizantInterviewer1ID})</span>
                                                             <span className={`status ${interview.status || ''}`}>
                                                                 {interview.status === 'Confirmed' ? '✅' : '⏳'} {interview.status || 'Unknown'}
                                                             </span>
@@ -2457,21 +2636,30 @@ Interview Panel`;
                                                             <p className="position">{interview.position}</p>
                                                         </div>
                                                         <div className="interview-meta">
-                                                            <span className="date-time">📅 {interview.date} at {interview.time}</span>
-                                                            <span className="interview-type">🎯 {interview.interviewType}</span>
-                                                            <span className="duration">⏱️ {interview.duration}</span>
+                                                            <span className="date-time">📅 {interview.evaluationDateTime || `${interview.date} at ${interview.time}`}</span>
+                                                            <span className="interview-type">🎯 {interview.evaluationType}</span>
+                                                            <span className="duration">⏱️ {interview.evaluationDuration || interview.duration || '30 min'}</span>
                                                             <div className="rating">
                                                                 <span className="stars">
-                                                                    {Array.from({ length: 5 }, (_, i) => (
-                                                                        <span key={i} className={i < Math.floor(interview.rating) ? 'star filled' : 'star empty'}>
-                                                                            {i < Math.floor(interview.rating) ? '⭐' : '☆'}
-                                                                        </span>
-                                                                    ))}
+                                                                    {(() => {
+                                                                        const calculatedRating = calculateAverageRating(interview.evaluationFeedback) || interview.rating || 0;
+                                                                        return Array.from({ length: 5 }, (_, i) => (
+                                                                            <span key={i} className={i < Math.floor(calculatedRating) ? 'star filled' : 'star empty'}>
+                                                                                {i < Math.floor(calculatedRating) ? '⭐' : '☆'}
+                                                                            </span>
+                                                                        ));
+                                                                    })()}
                                                                 </span>
-                                                                <span className="rating-value">{interview.rating}/5</span>
+                                                                <span className="rating-value">{calculateAverageRating(interview.evaluationFeedback) || interview.rating || 0}/5</span>
                                                             </div>
-                                                            <span className={`status ${interview.status ? interview.status.replace(' ', '-') : ''}`}>
-                                                                {interview.status === 'Hired' ? '🎉' : '📋'} {interview.status || 'Unknown'}
+                                                            <span className={`status ${(interview.finalStatus || interview.status) ? (interview.finalStatus || interview.status).replace(' ', '-') : ''}`}>
+                                                                {(() => {
+                                                                    const displayStatus = interview.finalStatus || interview.status;
+                                                                    if (displayStatus === 'Selected' || displayStatus === 'Hired') return '🎉';
+                                                                    if (displayStatus === 'Hold' || displayStatus === 'Under Review') return '⏸️';
+                                                                    if (displayStatus === 'Rejected') return '❌';
+                                                                    return '📋';
+                                                                })()} {interview.finalStatus || interview.status || 'Unknown'}
                                                             </span>
                                                         </div>
                                                     </div>
@@ -2527,13 +2715,106 @@ Interview Panel`;
                         </div>
                         <div className="popup-body">
                             <div className="transcript-content">
-                                <h4>Transcript LLM Response:</h4>
-                                <div className="transcript-text">
-                                    {typeof popupTranscriptData === 'string' ? (
-                                        <pre>{popupTranscriptData}</pre>
-                                    ) : (
-                                        <pre>{JSON.stringify(popupTranscriptData, null, 2)}</pre>
-                                    )}
+                                <h4>Question & Answer Analysis:</h4>
+                                <div className="qa-content">
+                                    {(() => {
+                                        try {
+                                            // Try to parse the data if it's a JSON string
+                                            let parsedData = popupTranscriptData;
+                                            if (typeof popupTranscriptData === 'string') {
+                                                try {
+                                                    parsedData = JSON.parse(popupTranscriptData);
+                                                } catch (e) {
+                                                    // If parsing fails, treat as plain text
+                                                    return (
+                                                        <div className="transcript-text">
+                                                            <h5>Raw Transcript:</h5>
+                                                            <pre>{popupTranscriptData}</pre>
+                                                        </div>
+                                                    );
+                                                }
+                                            }
+
+                                            // If it's an array of Q&A objects
+                                            if (Array.isArray(parsedData)) {
+                                                return (
+                                                    <div className="qa-list">
+                                                        {parsedData.map((qa, index) => (
+                                                            <div key={index} className="qa-item">
+                                                                <div className="question-section">
+                                                                    <h5>Question {index + 1}:</h5>
+                                                                    <p className="question-text">{qa.question || 'Question not available'}</p>
+                                                                </div>
+                                                                <div className="answer-section">
+                                                                    <h5>Answer:</h5>
+                                                                    <p className="answer-text">{qa.answer || 'Answer not available'}</p>
+                                                                </div>
+                                                                {qa.isCorrect !== undefined && (
+                                                                    <div className="correctness-section">
+                                                                        <span className={`correctness-badge ${qa.isCorrect ? 'correct' : 'incorrect'}`}>
+                                                                            {qa.isCorrect ? '✓ Correct' : '✗ Incorrect'}
+                                                                        </span>
+                                                                    </div>
+                                                                )}
+                                                                {qa.score !== undefined && (
+                                                                    <div className="score-section">
+                                                                        <span className="score-badge">Score: {qa.score}</span>
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                );
+                                            }
+
+                                            // If it's a single Q&A object
+                                            if (parsedData && typeof parsedData === 'object' && (parsedData.question || parsedData.answer)) {
+                                                return (
+                                                    <div className="qa-list">
+                                                        <div className="qa-item">
+                                                            <div className="question-section">
+                                                                <h5>Question:</h5>
+                                                                <p className="question-text">{parsedData.question || 'Question not available'}</p>
+                                                            </div>
+                                                            <div className="answer-section">
+                                                                <h5>Answer:</h5>
+                                                                <p className="answer-text">{parsedData.answer || 'Answer not available'}</p>
+                                                            </div>
+                                                            {parsedData.isCorrect !== undefined && (
+                                                                <div className="correctness-section">
+                                                                    <span className={`correctness-badge ${parsedData.isCorrect ? 'correct' : 'incorrect'}`}>
+                                                                        {parsedData.isCorrect ? '✓ Correct' : '✗ Incorrect'}
+                                                                    </span>
+                                                                </div>
+                                                            )}
+                                                            {parsedData.score !== undefined && (
+                                                                <div className="score-section">
+                                                                    <span className="score-badge">Score: {parsedData.score}</span>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                );
+                                            }
+
+                                            // Fallback for other object types
+                                            return (
+                                                <div className="transcript-text">
+                                                    <h5>Analysis Data:</h5>
+                                                    <pre>{JSON.stringify(parsedData, null, 2)}</pre>
+                                                </div>
+                                            );
+
+                                        } catch (error) {
+                                            console.error('Error parsing transcript data:', error);
+                                            return (
+                                                <div className="transcript-text">
+                                                    <h5>Raw Data:</h5>
+                                                    <pre>{typeof popupTranscriptData === 'string' ? popupTranscriptData : JSON.stringify(popupTranscriptData, null, 2)}</pre>
+                                                </div>
+                                            );
+                                        }
+                                    })()}
                                 </div>
                             </div>
                         </div>

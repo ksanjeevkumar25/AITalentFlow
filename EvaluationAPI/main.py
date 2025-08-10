@@ -13,7 +13,7 @@ import requests
 
 # Import database operations
 #from database import fetch_employees_from_database, fetch_employees_from_database, get_database_info, fetch_employee_basic_info
-from databaseOwn import fetch_employees_from_databaseOwn, fetch_serviceorder_from_databaseOwn, insert_evaluation_to_databaseOwn, fetch_evaluation_schedule_by_status, update_evaluation_schedule_status, fetch_evaluation_schedule_by_ids
+from databaseOwn import fetch_employees_from_databaseOwn, fetch_candidates_from_databaseOwn, fetch_serviceorder_from_databaseOwn, insert_evaluation_to_databaseOwn, fetch_evaluation_schedule_by_status, update_evaluation_schedule_status, fetch_evaluation_schedule_by_ids, fetch_evaluation_schedule_by_multiple_statuses, get_database_info
 
 # Import standard-aifc to replace the problematic built-in aifc module
 try:
@@ -81,19 +81,25 @@ class EvaluationRequest(BaseModel):
     cognizant_evaluator_id: str
     evaluation_datetime: str
     evaluation_type: str
+    final_status: str = "Scheduled"
 
 # Pydantic model for updating evaluation schedule status
 class UpdateEvaluationScheduleRequest(BaseModel):
-    service_order_id: int
-    employee_id: int
-    evaluation_transcription: str = None
-    audio_recording: bool = None
-    audio_saved_at: str = None
-    video_recording: bool = None
-    video_saved_at: str = None
-    evaluation_feedback: str = None
-    final_status: str = None
-    transcript_llm_response: str = None
+    serviceOrderId: int
+    employeeId: int
+    evaluationTranscription: str = None
+    audioRecording: bool = None
+    audioSavedAt: str = None
+    videoRecording: bool = None
+    videoSavedAt: str = None
+    evaluationFeedback: str = None
+    finalStatus: str = None
+    transcriptLlmResponse: str = None
+
+# Pydantic model for getting evaluation schedule status
+class GetEvaluationScheduleRequest(BaseModel):
+    serviceOrderId: int
+    employeeId: int
 
 def extract_audio_from_video_fallback(video_path: str, audio_path: str) -> bool:
     """
@@ -343,56 +349,105 @@ def get_candidates():
     return {"candidates": candidates, "total": len(candidates)}
 
 @app.get("/employees")
-def get_employees():
+def get_employees(serviceOrderId: str = None):
     """
     Returns a list of employees from the SQL Express database (all fields).
+    Query parameter: serviceOrderId (optional) - Filter employees by service order ID
     Falls back to mock data if database is unavailable.
     """
     try:
-        employees, source_info = fetch_employees_from_databaseOwn()
-        return {
+        employees, source_info = fetch_employees_from_databaseOwn(serviceOrderId)
+        
+        response = {
             "employees": employees,
             "total": len(employees),
             **source_info  # Unpack source_info (source, note, error, etc.)
         }
+        
+        # Add filter information to response
+        if serviceOrderId:
+            response["filter_applied"] = {
+                "field": "serviceOrderId",
+                "value": serviceOrderId
+            }
+        else:
+            response["filter_applied"] = None
+            
+        return response
+        
     except Exception as e:
         error_message = str(e)
         print(f"❌ Error in employees endpoint: {error_message}")
         
         # Return fallback response
-        return {
+        error_response = {
             "employees": [],
             "total": 0,
             "source": "error",
             "error": error_message,
             "note": "Failed to retrieve employee data"
         }
+        
+        if serviceOrderId:
+            error_response["filter_applied"] = {
+                "field": "serviceOrderId",
+                "value": serviceOrderId
+            }
+        else:
+            error_response["filter_applied"] = None
+            
+        return error_response
 
 @app.get("/candidateToSchedule")
-def get_candidateToSchedule():
+def get_candidateToSchedule(serviceOrderId: str = None):
     """
-    Returns a list of employees from the SQL Express database (all fields).
+    Returns a list of candidates/employees for scheduling from the SQL Express database.
+    Query parameter: serviceOrderId (optional) - Filter candidates by service order ID
     Falls back to mock data if database is unavailable.
     """
     try:
-        employees, source_info = fetch_employees_from_databaseOwn()
-        return {
-            "employees": employees,
+        # Fetch employees with optional serviceOrderId filtering
+        employees, source_info = fetch_candidates_from_databaseOwn(serviceOrderId)
+        
+        response = {
+            "candidates": employees,
             "total": len(employees),
             **source_info  # Unpack source_info (source, note, error, etc.)
         }
+        
+        # Add filter information to response
+        if serviceOrderId:
+            response["filter_applied"] = {
+                "field": "serviceOrderId",
+                "value": serviceOrderId
+            }
+        else:
+            response["filter_applied"] = None
+            
+        return response
+        
     except Exception as e:
         error_message = str(e)
-        print(f"❌ Error in employees endpoint: {error_message}")
+        print(f"❌ Error in candidateToSchedule endpoint: {error_message}")
         
         # Return fallback response
-        return {
-            "employees": [],
+        error_response = {
+            "candidates": [],
             "total": 0,
             "source": "error",
             "error": error_message,
-            "note": "Failed to retrieve employee data"
+            "note": "Failed to retrieve candidate data"
         }
+        
+        if serviceOrderId:
+            error_response["filter_applied"] = {
+                "field": "serviceOrderId", 
+                "value": serviceOrderId
+            }
+        else:
+            error_response["filter_applied"] = None
+            
+        return error_response
 
 @app.get("/employees/basic")
 def get_employees_basic():
@@ -460,7 +515,8 @@ def create_evaluation(evaluation: EvaluationRequest):
             employee_id=evaluation.employee_id,
             cognizant_evaluator_id=evaluation.cognizant_evaluator_id,
             evaluation_datetime=evaluation.evaluation_datetime,
-            evaluation_type=evaluation.evaluation_type
+            evaluation_type=evaluation.evaluation_type,
+            final_status=evaluation.final_status
         )
         
         # Return the response from the database function
@@ -478,71 +534,56 @@ def create_evaluation(evaluation: EvaluationRequest):
         }
 
 @app.get("/evaluationSchedules")
-def get_evaluation_schedules_by_status(final_status: str = None):
+def get_evaluation_schedules():
     """
-    Returns evaluation schedule data from EvaluationScheduleStatus table.
-    Query parameter: final_status (optional) - The status to filter evaluation schedules by.
-    If not provided, returns all evaluation schedules.
+    Returns evaluation schedules from EvaluationScheduleStatus table.
+    Automatically filters by FinalStatus = 'Scheduled'.
     """
     try:
-        evaluationSchedules, source_info = fetch_evaluation_schedule_by_status(final_status)
-        
-        # Build response based on whether filtering was applied
-        response = {
+        evaluationSchedules, source_info = fetch_evaluation_schedule_by_status("Scheduled")
+        return {
             "evaluationSchedules": evaluationSchedules,
             "total": len(evaluationSchedules),
+            "filter_applied": {
+                "field": "FinalStatus",
+                "value": "Scheduled"
+            },
             **source_info  # Unpack source_info (source, note, error, etc.)
         }
         
-        if final_status is not None:
-            response["filter_applied"] = {
-                "field": "FinalStatus",
-                "value": final_status
-            }
-        else:
-            response["filter_applied"] = None
-            
-        return response
     except Exception as e:
         error_message = str(e)
         print(f"❌ Error in evaluationSchedules endpoint: {error_message}")
         
-        # Build error response based on whether filtering was applied
-        error_response = {
+        # Return error response
+        return {
             "evaluationSchedules": [],
             "total": 0,
-            "source": "error",
-            "error": error_message
-        }
-        
-        if final_status is not None:
-            error_response["filter_applied"] = {
+            "filter_applied": {
                 "field": "FinalStatus",
-                "value": final_status
-            }
-            error_response["note"] = f"Failed to retrieve evaluation schedule data for FinalStatus='{final_status}'"
-        else:
-            error_response["filter_applied"] = None
-            error_response["note"] = "Failed to retrieve evaluation schedule data (all statuses)"
-            
-        return error_response
+                "value": "Scheduled"
+            },
+            "source": "error",
+            "error": error_message,
+            "note": "Failed to retrieve scheduled evaluation data"
+        }
 
 @app.get("/completedInterviews")
 def get_completed_interviews():
     """
-    Returns completed interview evaluation schedules from EvaluationScheduleStatus table.
-    Automatically filters by FinalStatus = 'Completed'.
+    Returns evaluation schedules with FinalStatus in ['Selected', 'Rejected', 'Hold', 'Others'].
     """
     try:
-        #evaluationSchedules, source_info = fetch_evaluation_schedule_by_status("Completed")
-        evaluationSchedules, source_info = fetch_evaluation_schedule_by_status()
+        # Define the status list for completed interviews
+        status_list = ['Selected', 'Rejected', 'Hold', 'Others']
+        evaluationSchedules, source_info = fetch_evaluation_schedule_by_multiple_statuses(status_list)
         
         return {
             "completedInterviews": evaluationSchedules,
             "total": len(evaluationSchedules),
             "filter_applied": {
                 "field": "FinalStatus",
-                "value": "Completed"
+                "values": status_list
             },
             **source_info  # Unpack source_info (source, note, error, etc.)
         }
@@ -557,7 +598,7 @@ def get_completed_interviews():
             "total": 0,
             "filter_applied": {
                 "field": "FinalStatus",
-                "value": "Completed"
+                "values": ['Selected', 'Rejected', 'Hold', 'Others']
             },
             "source": "error",
             "error": error_message,
@@ -571,11 +612,10 @@ def get_pending_evaluations():
     Automatically filters by FinalStatus = 'Pending'.
     """
     try:
-        #evaluationSchedules, source_info = fetch_evaluation_schedule_by_status("Pending")
-        evaluationSchedules, source_info = fetch_evaluation_schedule_by_status()
+        pendingEvaluations, source_info = fetch_evaluation_schedule_by_status("Pending")
         return {
-            "pendingEvaluations": evaluationSchedules,
-            "total": len(evaluationSchedules),
+            "pendingEvaluations": pendingEvaluations,
+            "total": len(pendingEvaluations),
             "filter_applied": {
                 "field": "FinalStatus",
                 "value": "Pending"
@@ -600,6 +640,13 @@ def get_pending_evaluations():
             "note": "Failed to retrieve pending evaluation data"
         }
 
+
+
+
+
+
+
+
 @app.get("/getQuestionAnswers")
 def get_question_answers(input_string: str):
     """
@@ -609,7 +656,7 @@ def get_question_answers(input_string: str):
     """
     try:
         # External API URL
-        external_api_url = "/api/Interview/extract-qa"
+        external_api_url = "https://aievaluationapi-f4breuawbkc6f3cm.uksouth-01.azurewebsites.net/api/Interview/extract-qa"
         
         # Prepare the request payload
         payload = {
@@ -683,16 +730,17 @@ def update_evaluation_schedule_status_endpoint(update_request: UpdateEvaluationS
     try:
         # Call the database function to update the evaluation schedule
         result = update_evaluation_schedule_status(
-            service_order_id=update_request.service_order_id,
-            employee_id=update_request.employee_id,
-            evaluation_transcription=update_request.evaluation_transcription,
-            audio_recording=update_request.audio_recording,
-            audio_saved_at=update_request.audio_saved_at,
-            video_recording=update_request.video_recording,
-            video_saved_at=update_request.video_saved_at,
-            evaluation_feedback=update_request.evaluation_feedback,
-            final_status=update_request.final_status,
-            transcript_llm_response=update_request.transcript_llm_response
+            serviceOrderId=update_request.serviceOrderId,
+            employeeId=update_request.employeeId,
+            evaluationTranscription=update_request.evaluationTranscription,
+            audioRecording=update_request.audioRecording,
+            audioSavedAt=update_request.audioSavedAt,
+            videoRecording=update_request.videoRecording,
+            videoSavedAt=update_request.videoSavedAt,
+            evaluationFeedback=update_request.evaluationFeedback,
+            finalStatus=update_request.finalStatus,
+            transcriptLlmResponse=update_request.transcriptLlmResponse
+            
         )
         
         # Return the response from the database function
@@ -707,23 +755,23 @@ def update_evaluation_schedule_status_endpoint(update_request: UpdateEvaluationS
             "status": "error",
             "message": f"Failed to update evaluation schedule status: {error_message}",
             "data": {
-                "service_order_id": update_request.service_order_id,
-                "employee_id": update_request.employee_id
+                "serviceOrderId": update_request.serviceOrderId,
+                "employeeId": update_request.employeeId
             }
         }
 
 @app.get("/getEvaluationScheduleStatus")
-def get_evaluation_schedule_status(service_order_id: int, employee_id: int):
+def get_evaluation_schedule_status(serviceOrderId: int, employeeId: int):
     """
     Retrieves evaluation schedule status from the EvaluationScheduleStatus table.
     Fetches the record that matches the provided ServiceOrderID and EmployeeID.
-    Query parameters: service_order_id (required), employee_id (required)
+    Query parameters: serviceOrderId (required), employeeId (required)
     """
     try:
         # Call the database function to fetch the evaluation schedule
         evaluation_schedule, source_info = fetch_evaluation_schedule_by_ids(
-            service_order_id=service_order_id,
-            employee_id=employee_id
+            serviceOrderId=serviceOrderId,
+            employeeId=employeeId
         )
         
         # Check if record was found
@@ -733,19 +781,19 @@ def get_evaluation_schedule_status(service_order_id: int, employee_id: int):
                 "message": "Evaluation schedule retrieved successfully",
                 "data": evaluation_schedule,
                 "query_parameters": {
-                    "service_order_id": service_order_id,
-                    "employee_id": employee_id
+                    "serviceOrderId": serviceOrderId,
+                    "employeeId": employeeId
                 },
                 **source_info  # Unpack source_info (source, note, error, etc.)
             }
         else:
             return {
                 "status": "not_found",
-                "message": f"No evaluation schedule found for ServiceOrderID: {service_order_id}, EmployeeID: {employee_id}",
+                "message": f"No evaluation schedule found for ServiceOrderID: {serviceOrderId}, EmployeeID: {employeeId}",
                 "data": None,
                 "query_parameters": {
-                    "service_order_id": service_order_id,
-                    "employee_id": employee_id
+                    "serviceOrderId": serviceOrderId,
+                    "employeeId": employeeId
                 },
                 **source_info
             }
@@ -760,8 +808,8 @@ def get_evaluation_schedule_status(service_order_id: int, employee_id: int):
             "message": f"Failed to retrieve evaluation schedule status: {error_message}",
             "data": None,
             "query_parameters": {
-                "service_order_id": service_order_id,
-                "employee_id": employee_id
+                "serviceOrderId": serviceOrderId,
+                "employeeId": employeeId
             }
         }
 
@@ -810,9 +858,10 @@ def get_system_status():
             "evaluationSchedules": "/evaluationSchedules (optional: ?final_status=<status>)",
             "completedInterviews": "/completedInterviews",
             "pendingEvaluations": "/pendingEvaluations",
+
             "getQuestionAnswers": "/getQuestionAnswers?input_string=<text>",
             "updateEvaluationScheduleStatus": "/updateEvaluationScheduleStatus (POST)",
-            "getEvaluationScheduleStatus": "/getEvaluationScheduleStatus?service_order_id=<id>&employee_id=<id>",
+            "getEvaluationScheduleStatus": "/getEvaluationScheduleStatus (GET)",
             "video_analysis": "/analyze-video",
             "system_status": "/system-status"
         },
@@ -932,7 +981,3 @@ async def analyze_video(video: UploadFile = File(...)):
     }
     
     return JSONResponse(content=analysis_result)
-
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
