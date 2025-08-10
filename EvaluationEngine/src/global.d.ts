@@ -7,7 +7,48 @@ declare namespace Express {
     user?: any;
     file?: any;
     files?: any[];
+    params?: any;
   }
+}
+
+// Enhanced Express Request types
+declare module 'express' {
+  interface Request {
+    params: any;
+    body: any;
+  }
+  
+  // Fix for Router namespace being used as type
+  interface Router {
+    // Add common router methods
+    get: any;
+    post: any;
+    put: any;
+    delete: any;
+    patch: any;
+  }
+
+  export function Router(): Router;
+}
+
+// Extend ReadableStream interface to allow arbitrary properties
+interface ReadableStream<R = any> {
+  [key: string]: any; // This allows any property to be accessed on ReadableStream
+  AccountName?: string;
+  Location?: string;
+  CCARole?: string;
+  HiringManager?: string;
+  RequiredFrom?: string;
+  ClientEvaluation?: string;
+  SOState?: string;
+  AssignedToResource?: string;
+  Grade?: string;
+  skills?: any;
+}
+
+// Fix for Number call signature errors
+interface Number {
+  (value?: any): number;
 }
 
 // Extend global NodeJS namespace for environment variables
