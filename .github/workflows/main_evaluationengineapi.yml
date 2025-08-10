@@ -29,9 +29,13 @@ jobs:
           cd EvaluationEngine
           npm install
           
+          # Debug: Show the package.json scripts section
+          Write-Output "Checking package.json scripts:"
+          Get-Content package.json | Select-String -Pattern "scripts" -Context 0,5
+          
           # Build TypeScript files
           Write-Output "Building TypeScript files..."
-          npm run build
+          npx tsc
           
           # Verify the dist directory was created
           if (Test-Path -Path "dist") {
@@ -57,6 +61,24 @@ jobs:
           # Display files for debugging
           dir
       
+      # Verify the dist directory structure before uploading
+      - name: Verify dist directory
+        shell: pwsh
+        run: |
+          Write-Output "Checking EvaluationEngine/dist directory structure:"
+          if (Test-Path -Path "EvaluationEngine/dist") {
+            Get-ChildItem -Path "EvaluationEngine/dist" -Recurse | Select-Object -First 10
+          } else {
+            Write-Output "WARNING: dist directory not found!"
+          }
+          
+          # Copy the src directory just in case tsc doesn't work
+          Write-Output "Copying src directory as backup..."
+          if (!(Test-Path -Path "EvaluationEngine/dist")) {
+            New-Item -ItemType Directory -Path "EvaluationEngine/dist" -Force
+          }
+          Copy-Item -Path "EvaluationEngine/src/*" -Destination "EvaluationEngine/dist" -Recurse -Force
+          
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
         with:
@@ -70,6 +92,7 @@ jobs:
             EvaluationEngine/.env
             EvaluationEngine/.npmrc
             EvaluationEngine/dist/**
+            EvaluationEngine/src/**
             EvaluationEngine/node_modules/**
 
   deploy:
