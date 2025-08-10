@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import express, { Router } from 'express';
 import { PriorityMatchingController } from '../controllers/priorityMatchingController';
 
 const router = Router();

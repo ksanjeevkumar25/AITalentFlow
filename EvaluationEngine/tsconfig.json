@@ -6,6 +6,7 @@
     "strict": false,            // Changed from true to false to allow compilation with 'any' types
     "noImplicitAny": false,     // Added to allow implicit 'any' types
     "esModuleInterop": true,
+  "allowSyntheticDefaultImports": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "outDir": "./dist",

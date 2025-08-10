@@ -1,7 +1,7 @@
 
 // ...existing code...
 
-import express from 'express';
+import express, { Request, Response, Router } from 'express';
 import sql from 'mssql';
 import { dbConfig } from './config';
 import cors from 'cors';

@@ -23,11 +23,11 @@ jobs:
         with:
           node-version: '22.x'
 
-      - name: npm install and build
+      - name: npm ci and build
         run: |
           cd EvaluationEngine
-          npm install
-          npm run build --if-present || npx tsc --skipLibCheck
+          npm ci
+          npm run build
       
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
