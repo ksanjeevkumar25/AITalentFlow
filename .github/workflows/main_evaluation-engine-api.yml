@@ -23,17 +23,30 @@ jobs:
         with:
           node-version: '22.x'
 
-      - name: npm install and prepare minimal deployment
+      - name: npm install, build TypeScript, and prepare deployment
         run: |
           cd EvaluationEngine
           npm install
           
-          # Create a simple .env file
+          # Build TypeScript files
+          echo "Building TypeScript files..."
+          npm run build
+          
+          # Verify the dist directory was created
+          if exist dist (
+            echo "TypeScript compilation successful - dist directory exists"
+            dir dist
+          ) else (
+            echo "ERROR: TypeScript compilation failed - dist directory not found"
+            exit 1
+          )
+          
+          # Create a production .env file
           echo "NODE_ENV=production" > .env
           
           # Create .deployment file to guide Kudu deployment
           echo "[config]" > .deployment
-          echo "SCM_DO_BUILD_DURING_DEPLOYMENT=true" >> .deployment
+          echo "SCM_DO_BUILD_DURING_DEPLOYMENT=false" >> .deployment
           
           # Remove unnecessary files (not needed in Azure)
           if exist start-server.bat del start-server.bat
@@ -55,6 +68,10 @@ jobs:
             EvaluationEngine/.deployment
             EvaluationEngine/.env
             EvaluationEngine/.npmrc
+            EvaluationEngine/dist/**
+            EvaluationEngine/node_modules/**
+            EvaluationEngine/dist/
+            EvaluationEngine/src/
 
   deploy:
     runs-on: ubuntu-latest
