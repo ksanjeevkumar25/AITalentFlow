@@ -52,7 +52,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: node-app
-          path: ./EvaluationEngine
+          path: ./
       - name: Install Node.js
         uses: actions/setup-node@v3
         with:
@@ -60,7 +60,6 @@ jobs:
 
       - name: npm ci (install dependencies)
         run: |
-          cd EvaluationEngine
           npm ci
       
       - name: Login to Azure
