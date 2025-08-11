@@ -8,16 +8,12 @@ function App() {
     const [isCameraOn, setIsCameraOn] = useState(false);
     const [isMicrophoneOn, setIsMicrophoneOn] = useState(false);
     const [isAudioOn, setIsAudioOn] = useState(false);
-    const [ratings, setRatings] = useState({
-        technical: 0,
-        communication: 0,
-        problemSolving: 0
-    });
+    // Removed unused: ratings, setRatings
     const [isRecording, setIsRecording] = useState(false);
     const [audioChunks, setAudioChunks] = useState([]);
     const [meetingLink, setMeetingLink] = useState('');
     const [linkGenerated, setLinkGenerated] = useState(false);
-    const [candidateEmail, setCandidateEmail] = useState('');
+    // Removed unused: candidateEmail, setCandidateEmail
     const [participants, setParticipants] = useState([]);
     const [scheduledInterviews, setScheduledInterviews] = useState([]);
     const [completedInterviews, setCompletedInterviews] = useState([]);
@@ -40,9 +36,9 @@ function App() {
         leadership: 0
     });
     const [evaluationNotes, setEvaluationNotes] = useState('');
-    const [evaluationDecision, setEvaluationDecision] = useState('');
+    // Removed unused: evaluationDecision, setEvaluationDecision
     const [TranscriptLLMResponse, setTranscriptLLMResponse] = useState('');
-    const [audioText, setAudioText] = useState('');
+    // Removed unused: audioText, setAudioText
     const [showQuestionAnswersPopup, setShowQuestionAnswersPopup] = useState(false);
     const [popupTranscriptData, setPopupTranscriptData] = useState('');
     const [currentMimeType, setCurrentMimeType] = useState('audio/webm');
@@ -77,8 +73,9 @@ function App() {
     // API Configuration
     // Set REACT_APP_API_URL in your .env file for your actual API endpoint
     // Example: REACT_APP_API_URL=http://your-api-domain.com
-    const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://api.interviewportal.com';
-    const BASE_URL = 'http://localhost:8000';
+    // Removed unused: API_BASE_URL
+    //const API_BASE_URL = 'http://localhost:8000';
+    const EXTRACT_QA_API_URL = process.env.REACT_APP_EXTRACT_QA_API_URL || 'https://aievaluationapi-f4breuawbkc6f3cm.uksouth-01.azurewebsites.net/api/Interview/extract-qa';
 
     // Function to calculate average rating from evaluationFeedback string
     const calculateAverageRating = (evaluationFeedback) => {
@@ -113,7 +110,7 @@ function App() {
         try {
             console.log('🔄 Updating evaluation schedule status...', { serviceOrderId, employeeId, updateData });
 
-            const response = await fetch(`${BASE_URL}/updateEvaluationScheduleStatus`, {
+            const response = await fetch(`${API_BASE_URL}/updateEvaluationScheduleStatus`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -144,7 +141,7 @@ function App() {
             
             console.log('🎯 Getting question answers from audio text...', { audioText });
 
-            const response = await fetch(`https://aievaluationapi-f4breuawbkc6f3cm.uksouth-01.azurewebsites.net/api/Interview/extract-qa`, {
+            const response = await fetch(EXTRACT_QA_API_URL, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -181,7 +178,7 @@ function App() {
                 employeeId: processedEmployeeId
             });
 
-            const url = `${BASE_URL}/getEvaluationScheduleStatus?${queryParams.toString()}`;
+            const url = `${API_BASE_URL}/getEvaluationScheduleStatus?${queryParams.toString()}`;
             console.log('📊 GET URL:', url);
 
             const response = await fetch(url, {
@@ -224,7 +221,7 @@ function App() {
             setIsLoadingScheduled(true);
             setScheduledError(null);
 
-            const response = await fetch(`${BASE_URL}/evaluationSchedules?evaluation_status=Scheduled`, {
+            const response = await fetch(`${API_BASE_URL}/evaluationSchedules?evaluation_status=Scheduled`, {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
@@ -263,7 +260,7 @@ function App() {
             // More detailed error message
             let detailedError = error.message;
             if (error.message.includes('Failed to fetch')) {
-                detailedError = `Cannot connect to API server. Is the server running on ${BASE_URL}?`;
+                detailedError = `Cannot connect to API server. Is the server running on ${API_BASE_URL}?`;
             }
 
             setScheduledError(detailedError);
@@ -309,7 +306,7 @@ function App() {
             setIsLoadingCompleted(true);
             setCompletedError(null);
 
-            const response = await fetch(`${BASE_URL}/completedInterviews`, {
+            const response = await fetch(`${API_BASE_URL}/completedInterviews`, {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
@@ -347,7 +344,7 @@ function App() {
             // More detailed error message
             let detailedError = error.message;
             if (error.message.includes('Failed to fetch')) {
-                detailedError = `Cannot connect to API server. Is the server running on ${BASE_URL}?`;
+                detailedError = `Cannot connect to API server. Is the server running on ${API_BASE_URL}?`;
             }
 
             setCompletedError(detailedError);
@@ -403,7 +400,7 @@ function App() {
             setIsLoadingEvaluation(true);
             setEvaluationError(null);
 
-            const response = await fetch(`${BASE_URL}/pendingEvaluations`, {
+            const response = await fetch(`${API_BASE_URL}/pendingEvaluations`, {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
@@ -441,7 +438,7 @@ function App() {
             // More detailed error message
             let detailedError = error.message;
             if (error.message.includes('Failed to fetch')) {
-                detailedError = `Cannot connect to API server. Is the server running on ${BASE_URL}?`;
+                detailedError = `Cannot connect to API server. Is the server running on ${API_BASE_URL}?`;
             }
 
             setEvaluationError(detailedError);
@@ -534,10 +531,10 @@ function App() {
             // Try different possible endpoints/methods
             let response;
             const possibleEndpoints = [
-                { url: buildUrl(`${BASE_URL}/employees`), method: 'GET' },
-                { url: buildUrl(`${BASE_URL}/api/employees`), method: 'GET' },
-                { url: buildUrl(`${BASE_URL}/employees`), method: 'POST' },
-                { url: buildUrl(`${BASE_URL}/api/employees`), method: 'POST' }
+                { url: buildUrl(`${API_BASE_URL}/employees`), method: 'GET' },
+                { url: buildUrl(`${API_BASE_URL}/api/employees`), method: 'GET' },
+                { url: buildUrl(`${API_BASE_URL}/employees`), method: 'POST' },
+                { url: buildUrl(`${API_BASE_URL}/api/employees`), method: 'POST' }
             ];
 
             console.log('📋 Fetching employees with serviceOrderId:', serviceOrderId);
@@ -590,7 +587,7 @@ function App() {
             // More detailed error message
             let detailedError = error.message;
             if (error.message.includes('Failed to fetch')) {
-                detailedError = `Cannot connect to API server. Is the server running on ${BASE_URL}?`;
+                detailedError = `Cannot connect to API server. Is the server running on ${API_BASE_URL}?`;
             }
 
             setEmployeesError(detailedError);
@@ -616,7 +613,7 @@ function App() {
             setCandidatesError(null);
 
             // Build URL with serviceOrderId as query parameter if provided
-            let url = `${BASE_URL}/candidateToSchedule`;
+            let url = `${API_BASE_URL}/candidateToSchedule`;
             if (serviceOrderId) {
                 const queryParams = new URLSearchParams({ serviceOrderId: serviceOrderId });
                 url = `${url}?${queryParams.toString()}`;
@@ -650,7 +647,7 @@ function App() {
             // More detailed error message
             let detailedError = error.message;
             if (error.message.includes('Failed to fetch')) {
-                detailedError = `Cannot connect to API server. Is the server running on ${BASE_URL}?`;
+                detailedError = `Cannot connect to API server. Is the server running on ${API_BASE_URL}?`;
             }
 
             setCandidatesError(detailedError);
@@ -677,7 +674,7 @@ function App() {
             setIsLoadingServiceOrders(true);
             setServiceOrdersError(null);
 
-            const response = await fetch(`${BASE_URL}/serviceorders`, {
+            const response = await fetch(`${API_BASE_URL}/serviceorders`, {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
@@ -703,7 +700,7 @@ function App() {
             // More detailed error message
             let detailedError = error.message;
             if (error.message.includes('Failed to fetch')) {
-                detailedError = `Cannot connect to API server. Is the server running on ${BASE_URL}?`;
+                detailedError = `Cannot connect to API server. Is the server running on ${API_BASE_URL}?`;
             }
 
             setServiceOrdersError(detailedError);
@@ -1366,12 +1363,7 @@ function App() {
         setCurrentInterviewDetails(null);
     };
 
-    const setRating = (category, rating) => {
-        setRatings(prev => ({
-            ...prev,
-            [category]: rating
-        }));
-    };
+    // Removed unused: setRating
 
     const setEvaluationRating = (category, rating) => {
         setEvaluationRatings(prev => ({
@@ -1605,7 +1597,7 @@ function App() {
             console.log('Submitting interview to /evaluations API:', payload);
 
             // Call the /evaluations API
-            const response = await fetch(`${BASE_URL}/evaluations`, {
+            const response = await fetch(`${API_BASE_URL}/evaluations`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
