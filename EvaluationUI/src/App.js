@@ -4,12 +4,14 @@ import { useState, useRef, useEffect } from 'react';
 
 function App() {
     // ...existing state declarations...
+    // ...existing state declarations...
+
+
     // Use dummy values to avoid unused variable errors
+    // This must be after all state and function declarations
     useEffect(() => {
-        // Assign dummy values
         const dummyEval = evaluationDecision || 'dummy-decision';
         const dummyAudio = audioText || 'dummy-audio';
-        // Log to console
         console.log('Dummy evaluationDecision:', dummyEval);
         console.log('Dummy audioText:', dummyAudio);
     }, [audioText, evaluationDecision]);
