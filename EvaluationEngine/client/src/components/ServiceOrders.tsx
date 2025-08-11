@@ -419,8 +419,8 @@ const ServiceOrders: React.FC<ServiceOrdersProps> = ({ userEmail }) => {
       setError(null);
       
       try {
-  // Use global variable injected at build time or fallback
-  const apiUrl = (window as any)._env_?.REACT_APP_API_URL || (window as any).REACT_APP_API_URL || 'http://localhost:3000';
+  // Use environment variable injected at build time or fallback
+  const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:3000';
         const response = await fetch(`${apiUrl}/service-orders/hiring-manager/${encodeURIComponent(userEmail)}`);
         const data = await response.json();
         
@@ -487,8 +487,8 @@ const ServiceOrders: React.FC<ServiceOrdersProps> = ({ userEmail }) => {
 
   const handleAllocateResource = async (serviceOrderId: number, employeeId: number, employeeName: string) => {
     try {
-  // Use global variable injected at build time or fallback
-  const apiUrl = (window as any)._env_?.REACT_APP_API_URL || (window as any).REACT_APP_API_URL || 'http://localhost:3000';
+  // Use environment variable injected at build time or fallback
+  const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:3000';
       const response = await fetch(`${apiUrl}/api/service-orders/allocate`, {
         method: 'POST',
         headers: {
