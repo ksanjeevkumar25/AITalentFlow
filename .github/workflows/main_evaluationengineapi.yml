@@ -34,14 +34,11 @@ jobs:
         with:
           name: node-app
           path: |
-            EvaluationEngine/server.js
+            EvaluationEngine/dist/**
             EvaluationEngine/package.json
             EvaluationEngine/package-lock.json
             EvaluationEngine/web.config
             EvaluationEngine/.env
-            EvaluationEngine/dist/**
-            EvaluationEngine/src/**
-            !EvaluationEngine/node_modules/**
 
   deploy:
     runs-on: ubuntu-latest
@@ -55,7 +52,16 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: node-app
-          path: .
+          path: ./EvaluationEngine
+      - name: Install Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '22.x'
+
+      - name: npm ci (install dependencies)
+        run: |
+          cd EvaluationEngine
+          npm ci
       
       - name: Login to Azure
         uses: azure/login@v2
