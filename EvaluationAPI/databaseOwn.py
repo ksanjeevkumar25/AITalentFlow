@@ -1,10 +1,19 @@
 import pyodbc
 from datetime import datetime
+import os
 
-# Centralized Database Configuration
-DATABASE_CONFIG = {
-    "driver": "SQL Server",
-    "server": "20.0.97.202\\SQLDemo",
+# Import the new configuration
+try:
+    from config import DatabaseConfig
+    USE_ENV_CONFIG = True
+except ImportError:
+    USE_ENV_CONFIG = False
+    print("⚠️ config.py not found, using legacy configuration")
+
+# Legacy Database Configuration (for backward compatibility)
+LEGACY_DATABASE_CONFIG = {
+    "driver": "ODBC Driver 17 for SQL Server",  # Updated for Azure Linux compatibility
+    "server": "20.0.97.202\\SQLDemo", 
     "database": "TestDB",
     "uid": "sa",
     "pwd": "Sanjeev@1234"
@@ -12,15 +21,27 @@ DATABASE_CONFIG = {
 
 def get_connection_string():
     """
-    Get database connection string from centralized configuration
+    Get database connection string from environment variables or fallback to legacy config
     Returns: connection string for pyodbc
     """
+    if USE_ENV_CONFIG:
+        try:
+            return DatabaseConfig.get_connection_string()
+        except ValueError as e:
+            print(f"⚠️ Environment config error: {e}")
+            print("🔄 Falling back to legacy configuration")
+    
+    # Fallback to legacy configuration
+    config = LEGACY_DATABASE_CONFIG
     return (
-        f"DRIVER={{{DATABASE_CONFIG['driver']}}};"
-        f"SERVER={DATABASE_CONFIG['server']};"
-        f"DATABASE={DATABASE_CONFIG['database']};"
-        f"UID={DATABASE_CONFIG['uid']};"
-        f"PWD={DATABASE_CONFIG['pwd']};"
+        f"DRIVER={{{config['driver']}}};"
+        f"SERVER={config['server']};"
+        f"DATABASE={config['database']};"
+        f"UID={config['uid']};"
+        f"PWD={config['pwd']};"
+        f"Encrypt=yes;"
+        f"TrustServerCertificate=no;"
+        f"Connection Timeout=30;"
     )
 
 def get_database_info():
@@ -28,11 +49,18 @@ def get_database_info():
     Get database configuration information
     Returns: dict with database info
     """
+    if USE_ENV_CONFIG:
+        try:
+            return DatabaseConfig.get_database_info()
+        except Exception:
+            pass
+    
+    # Fallback to legacy info
     return {
         "available": True,
-        "server": DATABASE_CONFIG['server'],
-        "database": DATABASE_CONFIG['database'],
-        "driver": DATABASE_CONFIG['driver'],
+        "server": LEGACY_DATABASE_CONFIG['server'],
+        "database": LEGACY_DATABASE_CONFIG['database'],
+        "driver": LEGACY_DATABASE_CONFIG['driver'],
         "connection_status": "configured"
     }
 
@@ -43,11 +71,14 @@ def fetch_serviceorder_from_databaseOwn():
     """
     # Initialize return variables
     serviceOrders = []
+    
+    # Get database configuration info for source_info
+    db_info = get_database_info()
     source_info = {
         "source": "sql_express_database",
         "database_config": {
-            "server": DATABASE_CONFIG['server'],
-            "database": DATABASE_CONFIG['database'],
+            "server": db_info['server'],
+            "database": db_info['database'],
             "table": "ServiceOrder"
         },
         "query": "SELECT ServiceOrderID, AccountName, CCARole FROM ServiceOrder WHERE SOState = 'Open'"
@@ -137,8 +168,8 @@ def fetch_employees_from_databaseOwn(serviceOrderId=None):
     source_info = {
         "source": "sql_express_database",
         "database_config": {
-            "server": DATABASE_CONFIG['server'],
-            "database": DATABASE_CONFIG['database'],
+            "server": get_database_info()['server'],
+            "database": get_database_info()['database'],
             "table": "Employee"
         },
         "query": query_text,
@@ -281,8 +312,8 @@ def fetch_candidates_from_databaseOwn(serviceOrderId=None):
     source_info = {
         "source": "sql_express_database",
         "database_config": {
-            "server": DATABASE_CONFIG['server'],
-            "database": DATABASE_CONFIG['database'],
+            "server": get_database_info()['server'],
+            "database": get_database_info()['database'],
             "table": "Employee"
         },
         "query": query_text,
@@ -651,8 +682,8 @@ def fetch_evaluation_schedule_by_status(final_status: str = None):
     source_info = {
         "source": "sql_express_database",
         "database_config": {
-            "server": DATABASE_CONFIG['server'],
-            "database": DATABASE_CONFIG['database'],
+            "server": get_database_info()['server'],
+            "database": get_database_info()['database'],
             "table": "EvaluationScheduleStatus"
         },
         "query": query_description
