@@ -24,6 +24,11 @@ jobs:
         working-directory: ./EvaluationUI
         run: npm ci
 
+      - name: Debug env
+        run: echo "REACT_APP_EVALUATION_API_URL=$REACT_APP_EVALUATION_API_URL"
+        env:
+          REACT_APP_EVALUATION_API_URL: ${{ secrets.REACT_APP_EVALUATION_API_URL }}
+
       - name: Build React App with Environment Variables
         working-directory: ./EvaluationUI
         env:
