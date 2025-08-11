@@ -3,18 +3,6 @@ import './App.css';
 import { useState, useRef, useEffect } from 'react';
 
 function App() {
-    // ...existing state declarations...
-    // ...existing state declarations...
-
-
-    // Use dummy values to avoid unused variable errors
-    // This must be after all state and function declarations
-    useEffect(() => {
-        const dummyEval = evaluationDecision || 'dummy-decision';
-        const dummyAudio = audioText || 'dummy-audio';
-        console.log('Dummy evaluationDecision:', dummyEval);
-        console.log('Dummy audioText:', dummyAudio);
-    }, [audioText, evaluationDecision]);
     const [activeSection, setActiveSection] = useState('dashboard');
     const [isInterviewStarted, setIsInterviewStarted] = useState(false);
     const [isCameraOn, setIsCameraOn] = useState(false);
@@ -151,9 +139,7 @@ function App() {
     // Get question answers API
     const getQuestionAnswers = async (audioText) => {
         try {
-            
             console.log('🎯 Getting question answers from audio text...', { audioText });
-
             const response = await fetch(EXTRACT_QA_API_URL, {
                 method: 'POST',
                 headers: {
