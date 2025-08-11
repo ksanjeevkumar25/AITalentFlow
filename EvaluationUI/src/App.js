@@ -11,7 +11,7 @@ function App() {
         // Log to console
         console.log('Dummy evaluationDecision:', dummyEval);
         console.log('Dummy audioText:', dummyAudio);
-    }, []);
+    }, [audioText, evaluationDecision]);
     const [activeSection, setActiveSection] = useState('dashboard');
     const [isInterviewStarted, setIsInterviewStarted] = useState(false);
     const [isCameraOn, setIsCameraOn] = useState(false);
