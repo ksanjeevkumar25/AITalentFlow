@@ -20,6 +20,11 @@ jobs:
           submodules: true
           lfs: false
 
+
+      - name: Install client dependencies
+        working-directory: ./EvaluationEngine/client
+        run: npm ci
+
       - name: Build React App with Environment Variables
         working-directory: ./EvaluationEngine/client
         env:
