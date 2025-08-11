@@ -98,7 +98,8 @@ const ManageServiceOrders: React.FC<ManageServiceOrdersProps> = ({ userEmail }) 
       console.log('Fetching service orders for email:', userEmail);
       console.log('Encoded email:', encodedEmail);
       
-      const apiUrl = `/api/service-orders/all/${encodedEmail}`;
+      const apiBase = process.env.REACT_APP_API_URL || 'http://localhost:3000';
+      const apiUrl = `${apiBase}/api/service-orders/all/${encodedEmail}`;
       console.log('Request URL:', apiUrl);
       
       const response = await fetch(apiUrl);

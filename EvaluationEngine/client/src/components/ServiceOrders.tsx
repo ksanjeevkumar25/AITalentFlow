@@ -1,4 +1,378 @@
 import React, { useState, useEffect } from 'react';
+// --- Final Restored Styles ---
+const remarksInlineContainerStyles: React.CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: '0.5rem',
+  marginTop: '0.25rem',
+};
+const remarksLabelStyles: React.CSSProperties = {
+  fontWeight: 'bold',
+  color: '#374151',
+  fontSize: '0.875rem',
+};
+const remarksInlineTextStyles: React.CSSProperties = {
+  fontSize: '0.875rem',
+  color: '#4b5563',
+  margin: 0,
+};
+const allocateButtonInlineContainerStyles: React.CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: '0.5rem',
+  marginTop: '0.5rem',
+};
+const allocateButtonInlineStyles: React.CSSProperties = {
+  backgroundColor: '#2563eb',
+  color: 'white',
+  border: 'none',
+  borderRadius: '0.375rem',
+  padding: '0.5rem 1rem',
+  fontWeight: 'bold',
+  cursor: 'pointer',
+  fontSize: '0.875rem',
+};
+const noMatchesContainerStyles: React.CSSProperties = {
+  textAlign: 'center' as const,
+  padding: '2rem',
+  color: '#6b7280',
+};
+const noMatchesTextStyles: React.CSSProperties = {
+  fontSize: '1rem',
+  color: '#6b7280',
+  margin: 0,
+};
+const placeholderPanelStyles: React.CSSProperties = {
+  display: 'flex',
+  flexDirection: 'column',
+  alignItems: 'center',
+  justifyContent: 'center',
+  height: '100%',
+  backgroundColor: '#f3f4f6',
+  borderRadius: '0.75rem',
+  border: '1px dashed #d1d5db',
+  padding: '2rem',
+};
+const placeholderContentStyles: React.CSSProperties = {
+  textAlign: 'center' as const,
+};
+const placeholderTitleStyles: React.CSSProperties = {
+  fontSize: '1.25rem',
+  fontWeight: 'bold',
+  color: '#2563eb',
+  margin: 0,
+};
+const placeholderTextStyles: React.CSSProperties = {
+  fontSize: '1rem',
+  color: '#6b7280',
+  margin: '0.5rem 0 0 0',
+};
+// --- More Restored Styles ---
+const selectedOrderTitleStyles: React.CSSProperties = {
+  fontSize: '1.25rem',
+  fontWeight: 'bold',
+  margin: 0,
+  color: '#1f2937',
+};
+const selectedOrderAccountStyles: React.CSSProperties = {
+  fontSize: '1rem',
+  color: '#6b7280',
+  margin: '0.25rem 0 0.5rem 0',
+};
+const matchesSectionStyles: React.CSSProperties = {
+  marginTop: '1.5rem',
+  marginBottom: '1.5rem',
+};
+const matchesSectionTitleStyles: React.CSSProperties = {
+  fontSize: '1.125rem',
+  fontWeight: 'bold',
+  margin: '0 0 1rem 0',
+  color: '#2563eb',
+};
+const matchesGridStyles: React.CSSProperties = {
+  display: 'grid',
+  gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
+  gap: '1.5rem',
+};
+const matchResourceCardStyles: React.CSSProperties = {
+  backgroundColor: '#f3f4f6',
+  borderRadius: '0.75rem',
+  boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
+  padding: '1rem',
+  display: 'flex',
+  flexDirection: 'column',
+  gap: '0.5rem',
+};
+const matchResourceHeaderStyles: React.CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'space-between',
+  marginBottom: '0.5rem',
+};
+const employeeNameLargeStyles: React.CSSProperties = {
+  fontSize: '1.125rem',
+  fontWeight: 'bold',
+  color: '#1f2937',
+};
+const matchBadgesContainerStyles: React.CSSProperties = {
+  display: 'flex',
+  gap: '0.5rem',
+};
+const priorityBadgeStyles: React.CSSProperties = {
+  backgroundColor: '#f59e42',
+  color: 'white',
+  borderRadius: '0.25rem',
+  padding: '0.25rem 0.5rem',
+  fontSize: '0.75rem',
+  fontWeight: 'bold',
+};
+const scoreBadgeStyles: React.CSSProperties = {
+  backgroundColor: '#10b981',
+  color: 'white',
+  borderRadius: '0.25rem',
+  padding: '0.25rem 0.5rem',
+  fontSize: '0.75rem',
+  fontWeight: 'bold',
+};
+const matchResourceDetailsStyles: React.CSSProperties = {
+  display: 'flex',
+  flexDirection: 'column',
+  gap: '0.25rem',
+};
+const matchDetailRowStyles: React.CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: '0.5rem',
+};
+const matchDetailLabelStyles: React.CSSProperties = {
+  fontWeight: 'bold',
+  color: '#374151',
+  fontSize: '0.875rem',
+};
+const willingnessStatusStyles: React.CSSProperties = {
+  backgroundColor: '#fbbf24',
+  color: '#fff',
+  borderRadius: '0.25rem',
+  padding: '0.15rem 0.5rem',
+  fontSize: '0.75rem',
+  fontWeight: 'bold',
+};
+const bottomSectionStyles: React.CSSProperties = {
+  marginTop: '1.5rem',
+  display: 'flex',
+  justifyContent: 'flex-end',
+  gap: '1rem',
+};
+// --- Restored Styles (continued) ---
+const orderStatusBadgeStyles: React.CSSProperties = {
+  padding: '0.25rem 0.5rem',
+  borderRadius: '0.375rem',
+  fontSize: '0.75rem',
+  fontWeight: 'bold',
+  color: 'white'
+};
+const orderItemAccountStyles: React.CSSProperties = {
+  margin: '0 0 0.75rem 0',
+  fontSize: '0.875rem',
+  color: '#6b7280',
+  fontWeight: '500'
+};
+const orderItemDetailsStyles: React.CSSProperties = {
+  display: 'flex',
+  gap: '1rem',
+  marginBottom: '0.5rem',
+  flexWrap: 'wrap'
+};
+const orderItemDetailStyles: React.CSSProperties = {
+  fontSize: '0.75rem',
+  color: '#4b5563',
+  backgroundColor: '#f3f4f6',
+  padding: '0.25rem 0.5rem',
+  borderRadius: '0.25rem'
+};
+const orderItemDateStyles: React.CSSProperties = {
+  margin: '0',
+  fontSize: '0.75rem',
+  color: '#6b7280'
+};
+const orderItemEvaluationStyles: React.CSSProperties = {
+  marginTop: '0.75rem',
+  padding: '0.5rem',
+  backgroundColor: '#f9fafb',
+  borderRadius: '0.375rem',
+  borderLeft: '3px solid #3b82f6'
+};
+const orderItemEvaluationTextStyles: React.CSSProperties = {
+  margin: '0',
+  fontSize: '0.75rem',
+  color: '#4b5563',
+  fontStyle: 'italic'
+};
+const emptyStateStyles: React.CSSProperties = {
+  textAlign: 'center' as const,
+  padding: '3rem',
+  color: '#6b7280'
+};
+const rightPanelStyles: React.CSSProperties = {
+  width: '60%',
+  backgroundColor: 'white',
+  borderRadius: '0.75rem',
+  border: '1px solid #e5e7eb',
+  overflow: 'hidden',
+  display: 'flex',
+  flexDirection: 'column'
+};
+const rightPanelHeaderStyles: React.CSSProperties = {
+  display: 'flex',
+  justifyContent: 'space-between',
+  alignItems: 'center',
+  padding: '1.5rem',
+  borderBottom: '1px solid #e5e7eb'
+};
+const closePanelButtonStyles: React.CSSProperties = {
+  background: 'none',
+  border: 'none',
+  fontSize: '1.25rem',
+  cursor: 'pointer',
+  color: '#6b7280',
+  padding: '0.25rem',
+  borderRadius: '0.25rem',
+  width: '2rem',
+  height: '2rem'
+};
+const selectedOrderDetailsStyles: React.CSSProperties = {
+  padding: '1.5rem',
+  borderBottom: '1px solid #e5e7eb'
+};
+// --- Restored Styles ---
+const headerStyles: React.CSSProperties = {
+  display: 'flex',
+  justifyContent: 'space-between',
+  alignItems: 'center',
+  marginBottom: '2rem'
+};
+const titleStyles: React.CSSProperties = {
+  color: '#1e293b',
+  margin: 0,
+  fontSize: '2rem',
+  fontWeight: 'bold'
+};
+const filterContainerStyles: React.CSSProperties = {
+  display: 'flex',
+  gap: '0.5rem'
+};
+const filterButtonStyles: React.CSSProperties = {
+  padding: '0.5rem 1rem',
+  border: '1px solid #d1d5db',
+  backgroundColor: 'white',
+  borderRadius: '6px',
+  cursor: 'pointer',
+  fontSize: '0.9rem',
+  transition: 'all 0.2s'
+};
+const activeFilterStyles: React.CSSProperties = {
+  backgroundColor: '#3b82f6',
+  color: 'white',
+  borderColor: '#3b82f6'
+};
+const loadingStyles: React.CSSProperties = {
+  display: 'flex',
+  flexDirection: 'column',
+  alignItems: 'center',
+  justifyContent: 'center',
+  height: '400px',
+  gap: '1rem'
+};
+const spinnerStyles: React.CSSProperties = {
+  width: '40px',
+  height: '40px',
+  border: '4px solid #f3f4f6',
+  borderTop: '4px solid #3b82f6',
+  borderRadius: '50%',
+  animation: 'spin 1s linear infinite'
+};
+const errorStyles: React.CSSProperties = {
+  display: 'flex',
+  flexDirection: 'column',
+  alignItems: 'center',
+  justifyContent: 'center',
+  height: '400px',
+  gap: '1rem',
+  color: '#dc2626'
+};
+const retryButtonStyles: React.CSSProperties = {
+  padding: '0.5rem 1rem',
+  backgroundColor: '#3b82f6',
+  color: 'white',
+  border: 'none',
+  borderRadius: '0.375rem',
+  cursor: 'pointer',
+  fontSize: '0.875rem'
+};
+const mainContentStyles: React.CSSProperties = {
+  display: 'flex',
+  gap: '1.5rem',
+  height: 'calc(100vh - 200px)',
+  minHeight: '600px'
+};
+const leftPanelStyles: React.CSSProperties = {
+  width: '40%',
+  backgroundColor: 'white',
+  borderRadius: '0.75rem',
+  border: '1px solid #e5e7eb',
+  overflow: 'hidden',
+  display: 'flex',
+  flexDirection: 'column'
+};
+const panelHeaderStyles: React.CSSProperties = {
+  padding: '1.5rem',
+  borderBottom: '1px solid #e5e7eb',
+  backgroundColor: '#f9fafb'
+};
+const panelTitleStyles: React.CSSProperties = {
+  margin: '0',
+  fontSize: '1.25rem',
+  fontWeight: '600',
+  color: '#1f2937'
+};
+const ordersListStyles: React.CSSProperties = {
+  flex: 1,
+  overflow: 'auto',
+  padding: '0.5rem'
+};
+const orderItemStyles: React.CSSProperties = {
+  padding: '1rem',
+  border: '1px solid #e5e7eb',
+  borderRadius: '0.5rem',
+  marginBottom: '0.75rem',
+  cursor: 'pointer',
+  transition: 'all 0.2s ease',
+  backgroundColor: '#fafafa'
+};
+const selectedOrderStyles: React.CSSProperties = {
+  backgroundColor: '#eff6ff',
+  borderColor: '#3b82f6',
+  boxShadow: '0 0 0 2px rgba(59, 130, 246, 0.1)'
+};
+const orderItemHeaderStyles: React.CSSProperties = {
+  display: 'flex',
+  justifyContent: 'space-between',
+  alignItems: 'flex-start',
+  marginBottom: '0.5rem'
+};
+const orderItemTitleStyles: React.CSSProperties = {
+  margin: '0',
+  fontSize: '1.125rem',
+  fontWeight: '600',
+  color: '#1f2937'
+};
+// Styles (restored for runtime usage)
+const containerStyles: React.CSSProperties = {
+  padding: '2rem',
+  backgroundColor: '#f8fafc',
+  minHeight: 'calc(100vh - 120px)'
+};
+// ...existing code...
 
 interface ServiceOrderMatch {
   MatchingListID: number;
@@ -45,7 +419,8 @@ const ServiceOrders: React.FC<ServiceOrdersProps> = ({ userEmail }) => {
       setError(null);
       
       try {
-        const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:3000';
+  // Use global variable injected at build time or fallback
+  const apiUrl = (window as any)._env_?.REACT_APP_API_URL || (window as any).REACT_APP_API_URL || 'http://localhost:3000';
         const response = await fetch(`${apiUrl}/service-orders/hiring-manager/${encodeURIComponent(userEmail)}`);
         const data = await response.json();
         
@@ -112,7 +487,8 @@ const ServiceOrders: React.FC<ServiceOrdersProps> = ({ userEmail }) => {
 
   const handleAllocateResource = async (serviceOrderId: number, employeeId: number, employeeName: string) => {
     try {
-      const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:3000';
+  // Use global variable injected at build time or fallback
+  const apiUrl = (window as any)._env_?.REACT_APP_API_URL || (window as any).REACT_APP_API_URL || 'http://localhost:3000';
       const response = await fetch(`${apiUrl}/api/service-orders/allocate`, {
         method: 'POST',
         headers: {

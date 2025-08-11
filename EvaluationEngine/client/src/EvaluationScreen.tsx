@@ -31,7 +31,7 @@ const EvaluationScreen: React.FC<EvaluationScreenProps> = ({ candidateId, skill,
   const [selected, setSelected] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  // const [answers, setAnswers] = useState<string[]>([]); // Removed unused variable
+  const [answers, setAnswers] = useState<string[]>([]);
   const [score, setScore] = useState<number | null>(null);
 
   const handleSubmit = async () => {
