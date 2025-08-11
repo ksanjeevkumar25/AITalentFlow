@@ -1,5 +1,4 @@
 "use strict";
-// ...existing code...
 var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
     var desc = Object.getOwnPropertyDescriptor(m, k);
@@ -36,6 +35,8 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+console.log('App started');
+// ...existing code...
 const express_1 = __importDefault(require("express"));
 const mssql_1 = __importDefault(require("mssql"));
 const config_1 = require("./config");

@@ -1,4 +1,5 @@
 
+console.log('App started');
 // ...existing code...
 
 import express from 'express';
