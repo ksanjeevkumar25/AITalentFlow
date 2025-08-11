@@ -31,7 +31,6 @@ const EvaluationScreen: React.FC<EvaluationScreenProps> = ({ candidateId, skill,
   const [selected, setSelected] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [answers, setAnswers] = useState<string[]>([]);
   const [score, setScore] = useState<number | null>(null);
 
   const handleSubmit = async () => {
@@ -43,7 +42,6 @@ const EvaluationScreen: React.FC<EvaluationScreenProps> = ({ candidateId, skill,
       const selectedIndex = questionData.options.findIndex(opt => opt === selected);
       if (selectedIndex === -1) throw new Error('Invalid choice');
       res = await nextQuestion({ candidateId, selectedChoice: String(selectedIndex) });
-      setAnswers(prev => [...prev, selected]);
       setSelected(null);
       // If currentQuestion is null, evaluation is complete
       if (!res.currentQuestion) {
