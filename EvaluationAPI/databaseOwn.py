@@ -12,7 +12,7 @@ except ImportError:
 
 # Legacy Database Configuration (for backward compatibility)
 LEGACY_DATABASE_CONFIG = {
-    "driver": "SQL Server",
+    "driver": "ODBC Driver 17 for SQL Server",  # Updated for Azure Linux compatibility
     "server": "20.0.97.202\\SQLDemo", 
     "database": "TestDB",
     "uid": "sa",
@@ -39,6 +39,9 @@ def get_connection_string():
         f"DATABASE={config['database']};"
         f"UID={config['uid']};"
         f"PWD={config['pwd']};"
+        f"Encrypt=yes;"
+        f"TrustServerCertificate=no;"
+        f"Connection Timeout=30;"
     )
 
 def get_database_info():
