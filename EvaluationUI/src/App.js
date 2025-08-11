@@ -37,9 +37,9 @@ function App() {
         leadership: 0
     });
     const [evaluationNotes, setEvaluationNotes] = useState('');
-    // Removed unused: evaluationDecision
+    const [evaluationDecision, setEvaluationDecision] = useState('');
     const [TranscriptLLMResponse, setTranscriptLLMResponse] = useState('');
-    // Removed unused: audioText
+    const [audioText, setAudioText] = useState('');
     const [showQuestionAnswersPopup, setShowQuestionAnswersPopup] = useState(false);
     const [popupTranscriptData, setPopupTranscriptData] = useState('');
     const [currentMimeType, setCurrentMimeType] = useState('audio/webm');
