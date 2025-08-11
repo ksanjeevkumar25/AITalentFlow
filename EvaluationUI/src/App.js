@@ -8,12 +8,16 @@ function App() {
     const [isCameraOn, setIsCameraOn] = useState(false);
     const [isMicrophoneOn, setIsMicrophoneOn] = useState(false);
     const [isAudioOn, setIsAudioOn] = useState(false);
-    // Removed unused: ratings, setRatings
+    const [ratings, setRatings] = useState({
+        technical: 0,
+        communication: 0,
+        problemSolving: 0
+    });
     const [isRecording, setIsRecording] = useState(false);
     const [audioChunks, setAudioChunks] = useState([]);
     const [meetingLink, setMeetingLink] = useState('');
     const [linkGenerated, setLinkGenerated] = useState(false);
-    // Removed unused: candidateEmail, setCandidateEmail
+    const [candidateEmail, setCandidateEmail] = useState('');
     const [participants, setParticipants] = useState([]);
     const [scheduledInterviews, setScheduledInterviews] = useState([]);
     const [completedInterviews, setCompletedInterviews] = useState([]);
@@ -36,9 +40,9 @@ function App() {
         leadership: 0
     });
     const [evaluationNotes, setEvaluationNotes] = useState('');
-    // Removed unused: evaluationDecision, setEvaluationDecision
+    const [evaluationDecision, setEvaluationDecision] = useState('');
     const [TranscriptLLMResponse, setTranscriptLLMResponse] = useState('');
-    // Removed unused: audioText, setAudioText
+    const [audioText, setAudioText] = useState('');
     const [showQuestionAnswersPopup, setShowQuestionAnswersPopup] = useState(false);
     const [popupTranscriptData, setPopupTranscriptData] = useState('');
     const [currentMimeType, setCurrentMimeType] = useState('audio/webm');
@@ -73,7 +77,7 @@ function App() {
     // API Configuration
     // Set REACT_APP_API_URL in your .env file for your actual API endpoint
     // Example: REACT_APP_API_URL=http://your-api-domain.com
-    // Removed unused: API_BASE_URL
+    const API_BASE_URL = process.env.REACT_APP_EVALUATION_API_URL || 'http://api.interviewportal.com';
     //const API_BASE_URL = 'http://localhost:8000';
     const EXTRACT_QA_API_URL = process.env.REACT_APP_EXTRACT_QA_API_URL || 'https://aievaluationapi-f4breuawbkc6f3cm.uksouth-01.azurewebsites.net/api/Interview/extract-qa';
 
@@ -1363,7 +1367,7 @@ function App() {
         setCurrentInterviewDetails(null);
     };
 
-    // Removed unused: setRating
+    // setRating is not used elsewhere, so it can remain removed.
 
     const setEvaluationRating = (category, rating) => {
         setEvaluationRatings(prev => ({
