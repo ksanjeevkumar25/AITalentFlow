@@ -3,6 +3,7 @@ import './App.css';
 import { useState, useRef, useEffect } from 'react';
 
 function App() {
+    // ...existing state declarations...
     // Use dummy values to avoid unused variable errors
     useEffect(() => {
         // Assign dummy values
