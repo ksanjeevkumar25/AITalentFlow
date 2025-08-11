@@ -23,17 +23,18 @@ jobs:
         with:
           node-version: '22.x'
 
-      - name: npm install, build, and test
+      - name: npm install, build, and test (EvaluationEngine)
         run: |
           npm install
           npm run build --if-present
           npm run test --if-present
+        working-directory: EvaluationEngine
 
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
         with:
           name: node-app
-          path: .
+          path: EvaluationEngine
 
   deploy:
     runs-on: ubuntu-latest
@@ -47,6 +48,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: node-app
+          path: EvaluationEngine
       
       - name: Login to Azure
         uses: azure/login@v2
@@ -61,5 +63,4 @@ jobs:
         with:
           app-name: 'EvaluationEngineAPI'
           slot-name: 'Production'
-          package: .
-          
+          package: EvaluationEngine
