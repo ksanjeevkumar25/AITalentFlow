@@ -8,16 +8,13 @@ function App() {
     const [isCameraOn, setIsCameraOn] = useState(false);
     const [isMicrophoneOn, setIsMicrophoneOn] = useState(false);
     const [isAudioOn, setIsAudioOn] = useState(false);
-    const [ratings, setRatings] = useState({
-        technical: 0,
-        communication: 0,
-        problemSolving: 0
-    });
+    // Removed unused: ratings, setRatings
     const [isRecording, setIsRecording] = useState(false);
     const [audioChunks, setAudioChunks] = useState([]);
     const [meetingLink, setMeetingLink] = useState('');
     const [linkGenerated, setLinkGenerated] = useState(false);
-    const [candidateEmail, setCandidateEmail] = useState('');
+    // Removed unused: setCandidateEmail
+    const [candidateEmail] = useState('');
     const [participants, setParticipants] = useState([]);
     const [scheduledInterviews, setScheduledInterviews] = useState([]);
     const [completedInterviews, setCompletedInterviews] = useState([]);
@@ -40,9 +37,9 @@ function App() {
         leadership: 0
     });
     const [evaluationNotes, setEvaluationNotes] = useState('');
-    const [evaluationDecision, setEvaluationDecision] = useState('');
+    // Removed unused: evaluationDecision
     const [TranscriptLLMResponse, setTranscriptLLMResponse] = useState('');
-    const [audioText, setAudioText] = useState('');
+    // Removed unused: audioText
     const [showQuestionAnswersPopup, setShowQuestionAnswersPopup] = useState(false);
     const [popupTranscriptData, setPopupTranscriptData] = useState('');
     const [currentMimeType, setCurrentMimeType] = useState('audio/webm');
@@ -727,7 +724,8 @@ function App() {
     useEffect(() => {
         fetchScheduledInterviews();
         fetchCompletedInterviews();
-    }, []);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []); // Intentionally omitting fetchScheduledInterviews, fetchCompletedInterviews from deps
 
     // Debug effect to track scheduledInterviews state changes
     useEffect(() => {
@@ -751,7 +749,8 @@ function App() {
         if (activeSection === 'evaluation') {
             fetchCandidatesForEvaluation();
         }
-    }, [activeSection]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [activeSection]); // Intentionally omitting fetchCandidatesForEvaluation from deps
 
     const addParticipant = (name, role, isHost = false) => {
         const newParticipant = {
