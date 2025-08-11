@@ -11,6 +11,14 @@ import json
 import base64
 import requests
 
+# Import configuration
+try:
+    from config import AppConfig, AzureConfig
+    USE_ENV_CONFIG = True
+except ImportError:
+    USE_ENV_CONFIG = False
+    print("⚠️ config.py not found, using default configuration")
+
 # Import database operations
 #from database import fetch_employees_from_database, fetch_employees_from_database, get_database_info, fetch_employee_basic_info
 from databaseOwn import fetch_employees_from_databaseOwn, fetch_candidates_from_databaseOwn, fetch_serviceorder_from_databaseOwn, insert_evaluation_to_databaseOwn, fetch_evaluation_schedule_by_status, update_evaluation_schedule_status, fetch_evaluation_schedule_by_ids, fetch_evaluation_schedule_by_multiple_statuses, get_database_info
@@ -63,15 +71,23 @@ else:
     print("💡 API is fully functional with mock transcription service")
     print("📋 All endpoints work normally with realistic sample data")
 
-app = FastAPI()
+app = FastAPI(title="Interview Evaluation API", 
+              description="API for managing interviews, candidates, and video analysis",
+              version="1.0.0")
 
-# Add CORS middleware to allow all origins
+# Get CORS origins from configuration
+if USE_ENV_CONFIG:
+    cors_origins = AppConfig.CORS_ORIGINS
+else:
+    cors_origins = ["*"]  # Default fallback
+
+# Add CORS middleware with configurable origins
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Allows all origins
+    allow_origins=cors_origins,
     allow_credentials=True,
-    allow_methods=["*"],  # Allows all methods (GET, POST, PUT, DELETE, etc.)
-    allow_headers=["*"],  # Allows all headers
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 # Pydantic model for evaluation request
@@ -981,3 +997,8 @@ async def analyze_video(video: UploadFile = File(...)):
     }
     
     return JSONResponse(content=analysis_result)
+
+# For direct execution
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="127.0.0.1", port=8001, reload=False)

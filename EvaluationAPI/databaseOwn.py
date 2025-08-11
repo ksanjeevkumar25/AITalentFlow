@@ -1,10 +1,19 @@
 import pyodbc
 from datetime import datetime
+import os
 
-# Centralized Database Configuration
-DATABASE_CONFIG = {
+# Import the new configuration
+try:
+    from config import DatabaseConfig
+    USE_ENV_CONFIG = True
+except ImportError:
+    USE_ENV_CONFIG = False
+    print("⚠️ config.py not found, using legacy configuration")
+
+# Legacy Database Configuration (for backward compatibility)
+LEGACY_DATABASE_CONFIG = {
     "driver": "SQL Server",
-    "server": "20.0.97.202\\SQLDemo",
+    "server": "20.0.97.202\\SQLDemo", 
     "database": "TestDB",
     "uid": "sa",
     "pwd": "Sanjeev@1234"
@@ -12,15 +21,24 @@ DATABASE_CONFIG = {
 
 def get_connection_string():
     """
-    Get database connection string from centralized configuration
+    Get database connection string from environment variables or fallback to legacy config
     Returns: connection string for pyodbc
     """
+    if USE_ENV_CONFIG:
+        try:
+            return DatabaseConfig.get_connection_string()
+        except ValueError as e:
+            print(f"⚠️ Environment config error: {e}")
+            print("🔄 Falling back to legacy configuration")
+    
+    # Fallback to legacy configuration
+    config = LEGACY_DATABASE_CONFIG
     return (
-        f"DRIVER={{{DATABASE_CONFIG['driver']}}};"
-        f"SERVER={DATABASE_CONFIG['server']};"
-        f"DATABASE={DATABASE_CONFIG['database']};"
-        f"UID={DATABASE_CONFIG['uid']};"
-        f"PWD={DATABASE_CONFIG['pwd']};"
+        f"DRIVER={{{config['driver']}}};"
+        f"SERVER={config['server']};"
+        f"DATABASE={config['database']};"
+        f"UID={config['uid']};"
+        f"PWD={config['pwd']};"
     )
 
 def get_database_info():
@@ -28,11 +46,18 @@ def get_database_info():
     Get database configuration information
     Returns: dict with database info
     """
+    if USE_ENV_CONFIG:
+        try:
+            return DatabaseConfig.get_database_info()
+        except Exception:
+            pass
+    
+    # Fallback to legacy info
     return {
         "available": True,
-        "server": DATABASE_CONFIG['server'],
-        "database": DATABASE_CONFIG['database'],
-        "driver": DATABASE_CONFIG['driver'],
+        "server": LEGACY_DATABASE_CONFIG['server'],
+        "database": LEGACY_DATABASE_CONFIG['database'],
+        "driver": LEGACY_DATABASE_CONFIG['driver'],
         "connection_status": "configured"
     }
 

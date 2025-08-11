@@ -266,7 +266,7 @@ tramp
 
 # Operating System Files
 
-# Windows
+# Windows specific
 Thumbs.db
 Thumbs.db:encryptable
 ehthumbs.db
@@ -280,6 +280,16 @@ $RECYCLE.BIN/
 *.msm
 *.msp
 *.lnk
+
+# Windows Python specific
+*.exe
+*.bat
+Scripts/
+pyvenv.cfg
+
+# FastAPI server logs
+uvicorn.log
+server.log
 
 # macOS
 .DS_Store
@@ -310,6 +320,7 @@ Temporary Items
 # Project Specific Files
 
 # Environment files with sensitive data
+.env
 .env.local
 .env.development
 .env.production
@@ -317,6 +328,9 @@ Temporary Items
 config.py
 config_local.py
 secrets.json
+
+# Keep Azure template but not actual config
+# .env.azure is a template - actual values should be in Azure App Settings
 
 # Database files and backups
 *.db
@@ -346,6 +360,15 @@ temporary/
 *_audio.wav
 *_temp.*
 
+# Installation and deployment files (not needed for execution)
+install_sql_express_driver.md
+deploy-azure.sh
+
+# Sample and test files
+sample_queries.sql
+test_database.py
+check_drivers.py
+
 # Logs
 logs/
 *.log
@@ -364,8 +387,12 @@ temp/
 *.backup
 *.orig
 
-# Docker
-# Don't ignore Dockerfile and docker-compose files, but ignore runtime files
+# Docker files - removed as not required for this project execution
+# These files are not needed for basic project execution
+Dockerfile
+docker-compose.yml
+docker-compose.prod.yml
+DOCKER_README.md
 .dockerignore
 docker-compose.override.yml
 .docker/
@@ -421,6 +448,55 @@ user_uploads/
 processed_videos/
 transcriptions/
 evaluation_files/
+
+# FastAPI specific
+*.pyc
+*.pyo
+*.pyd
+__pycache__/
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Audio/Video processing temporary files
+*.mp4
+*.avi
+*.mov
+*.wmv
+*.flv
+*.webm
+*.mkv
+*.mp3
+*.wav
+*.aac
+*.ogg
+*.m4a
+*_audio.wav
+*_temp.*
+temp_video_*
+temp_audio_*
+
+# SQL Server and database files
+*.mdf
+*.ldf
+*.sdf
+
+# Configuration files with sensitive data (keep template)
+config.py
+# Keep config_template.py for reference
 
 # Performance and profiling
 *.prof
