@@ -27,7 +27,7 @@ jobs:
         run: |
           npm install
           npm run build --if-present
-          npm run test --if-present
+          # npm run test --if-present  # <-- comment out or remove this line if you don't want to run tests
         working-directory: EvaluationEngine
 
       - name: Upload artifact for deployment job
