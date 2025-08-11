@@ -68,11 +68,14 @@ def fetch_serviceorder_from_databaseOwn():
     """
     # Initialize return variables
     serviceOrders = []
+    
+    # Get database configuration info for source_info
+    db_info = get_database_info()
     source_info = {
         "source": "sql_express_database",
         "database_config": {
-            "server": DATABASE_CONFIG['server'],
-            "database": DATABASE_CONFIG['database'],
+            "server": db_info['server'],
+            "database": db_info['database'],
             "table": "ServiceOrder"
         },
         "query": "SELECT ServiceOrderID, AccountName, CCARole FROM ServiceOrder WHERE SOState = 'Open'"
@@ -162,8 +165,8 @@ def fetch_employees_from_databaseOwn(serviceOrderId=None):
     source_info = {
         "source": "sql_express_database",
         "database_config": {
-            "server": DATABASE_CONFIG['server'],
-            "database": DATABASE_CONFIG['database'],
+            "server": get_database_info()['server'],
+            "database": get_database_info()['database'],
             "table": "Employee"
         },
         "query": query_text,
@@ -306,8 +309,8 @@ def fetch_candidates_from_databaseOwn(serviceOrderId=None):
     source_info = {
         "source": "sql_express_database",
         "database_config": {
-            "server": DATABASE_CONFIG['server'],
-            "database": DATABASE_CONFIG['database'],
+            "server": get_database_info()['server'],
+            "database": get_database_info()['database'],
             "table": "Employee"
         },
         "query": query_text,
@@ -676,8 +679,8 @@ def fetch_evaluation_schedule_by_status(final_status: str = None):
     source_info = {
         "source": "sql_express_database",
         "database_config": {
-            "server": DATABASE_CONFIG['server'],
-            "database": DATABASE_CONFIG['database'],
+            "server": get_database_info()['server'],
+            "database": get_database_info()['database'],
             "table": "EvaluationScheduleStatus"
         },
         "query": query_description

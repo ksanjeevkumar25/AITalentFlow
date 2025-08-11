@@ -1001,4 +1001,4 @@ async def analyze_video(video: UploadFile = File(...)):
 # For direct execution
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="127.0.0.1", port=8001, reload=False)
+    uvicorn.run(app, host="127.0.0.1", port=8002, reload=False)
