@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { nextQuestion } from './apiConfig.ts';
 import Spinner from './Spinner.tsx';
 
@@ -31,7 +31,7 @@ const EvaluationScreen: React.FC<EvaluationScreenProps> = ({ candidateId, skill,
   const [selected, setSelected] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [answers, setAnswers] = useState<string[]>([]);
+  // const [answers, setAnswers] = useState<string[]>([]); // Removed unused variable
   const [score, setScore] = useState<number | null>(null);
 
   const handleSubmit = async () => {
