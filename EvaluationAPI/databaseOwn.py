@@ -40,7 +40,7 @@ def get_connection_string():
         f"UID={config['uid']};"
         f"PWD={config['pwd']};"
         f"Encrypt=yes;"
-        f"TrustServerCertificate=no;"
+        f"TrustServerCertificate=yes;"
         f"Connection Timeout=30;"
     )
 
