@@ -11,7 +11,7 @@ on:
 
 jobs:
   build:
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
     permissions:
       contents: read #This is required for actions/checkout
 
@@ -23,22 +23,17 @@ jobs:
         with:
           node-version: '22.x'
 
-      - name: npm ci and build
+      - name: npm install, build, and test
         run: |
-          cd EvaluationEngine
-          npm ci
-          npm run build
-      
+          npm install
+          npm run build --if-present
+          npm run test --if-present
+
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
         with:
           name: node-app
-          path: |
-            EvaluationEngine/dist/**
-            EvaluationEngine/package.json
-            EvaluationEngine/package-lock.json
-            EvaluationEngine/web.config
-            EvaluationEngine/.env
+          path: .
 
   deploy:
     runs-on: ubuntu-latest
@@ -52,27 +47,19 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: node-app
-          path: ./
-      - name: Install Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: '22.x'
-
-      - name: npm ci (install dependencies)
-        run: |
-          npm ci
       
       - name: Login to Azure
         uses: azure/login@v2
         with:
-          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_4FCB0C0C53144C7F9FBE7A354702E93B }}
-          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_02C8185132E64C8DA6CCC259C9A88B16 }}
-          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_2D8ADC95F8B14B8BB70F6680BB49A36E }}
+          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_2D1E994FAB444AA58AD75C01C3E4887E }}
+          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_F838A7B2F55F4C04B17F3DB055CF2099 }}
+          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_DB9F3561F99147AEA6D50F04248F582F }}
 
       - name: 'Deploy to Azure Web App'
-        uses: azure/webapps-deploy@v3
         id: deploy-to-webapp
+        uses: azure/webapps-deploy@v3
         with:
           app-name: 'EvaluationEngineAPI'
           slot-name: 'Production'
           package: .
+          
