@@ -83,7 +83,7 @@ function App() {
     // API Configuration
     // Set REACT_APP_API_URL in your .env file for your actual API endpoint
     // Example: REACT_APP_API_URL=http://your-api-domain.com
-    const API_BASE_URL = process.env.REACT_APP_EVALUATION_API_URL || 'http://api.interviewportal.com';
+    const API_BASE_URL = process.env.REACT_APP_EVALUATION_API_URL || 'https://evaluationapi-fhf0f2dsd5ejdqcv.uksouth-01.azurewebsites.net';
     //const API_BASE_URL = 'http://localhost:8000';
     const EXTRACT_QA_API_URL = process.env.REACT_APP_EXTRACT_QA_API_URL || 'https://aievaluationapi-f4breuawbkc6f3cm.uksouth-01.azurewebsites.net/api/Interview/extract-qa';
 
