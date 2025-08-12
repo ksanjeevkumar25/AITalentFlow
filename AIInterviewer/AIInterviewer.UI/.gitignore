@@ -1,5 +1,0 @@
-# Ignore build output directories
-bin/
-obj/
-**/bin/
-**/obj/
