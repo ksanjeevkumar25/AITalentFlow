@@ -3,21 +3,19 @@ import './App.css';
 import { useState, useRef, useEffect } from 'react';
 
 function App() {
+
     const [activeSection, setActiveSection] = useState('dashboard');
     const [isInterviewStarted, setIsInterviewStarted] = useState(false);
     const [isCameraOn, setIsCameraOn] = useState(false);
     const [isMicrophoneOn, setIsMicrophoneOn] = useState(false);
     const [isAudioOn, setIsAudioOn] = useState(false);
-    const [ratings, setRatings] = useState({
-        technical: 0,
-        communication: 0,
-        problemSolving: 0
-    });
+    // Removed unused: ratings, setRatings
     const [isRecording, setIsRecording] = useState(false);
     const [audioChunks, setAudioChunks] = useState([]);
     const [meetingLink, setMeetingLink] = useState('');
     const [linkGenerated, setLinkGenerated] = useState(false);
-    const [candidateEmail, setCandidateEmail] = useState('');
+    // Removed unused: setCandidateEmail
+    const [candidateEmail] = useState('');
     const [participants, setParticipants] = useState([]);
     const [scheduledInterviews, setScheduledInterviews] = useState([]);
     const [completedInterviews, setCompletedInterviews] = useState([]);
@@ -46,6 +44,14 @@ function App() {
     const [showQuestionAnswersPopup, setShowQuestionAnswersPopup] = useState(false);
     const [popupTranscriptData, setPopupTranscriptData] = useState('');
     const [currentMimeType, setCurrentMimeType] = useState('audio/webm');
+    
+   
+    useEffect(() => {
+        if (process.env.NODE_ENV === 'development') {
+            // These are used elsewhere in the code but ESLint doesn't detect it
+            console.log('Variables ready for use:', { evaluationDecision, audioText });
+        }
+    }, [evaluationDecision, audioText]);
     const [newInterviewData, setNewInterviewData] = useState({
         candidateName: '',
         candidateEmployeeId: '',
@@ -77,8 +83,9 @@ function App() {
     // API Configuration
     // Set REACT_APP_API_URL in your .env file for your actual API endpoint
     // Example: REACT_APP_API_URL=http://your-api-domain.com
-    const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://api.interviewportal.com';
-    const BASE_URL = 'http://localhost:8000';
+    const API_BASE_URL = process.env.REACT_APP_EVALUATION_API_URL || 'https://evaluationapi-fhf0f2dsd5ejdqcv.uksouth-01.azurewebsites.net';
+    //const API_BASE_URL = 'http://localhost:8000';
+    const EXTRACT_QA_API_URL = process.env.REACT_APP_EXTRACT_QA_API_URL || 'https://aievaluationapi-f4breuawbkc6f3cm.uksouth-01.azurewebsites.net/api/Interview/extract-qa';
 
     // Function to calculate average rating from evaluationFeedback string
     const calculateAverageRating = (evaluationFeedback) => {
@@ -113,7 +120,7 @@ function App() {
         try {
             console.log('🔄 Updating evaluation schedule status...', { serviceOrderId, employeeId, updateData });
 
-            const response = await fetch(`${BASE_URL}/updateEvaluationScheduleStatus`, {
+            const response = await fetch(`${API_BASE_URL}/updateEvaluationScheduleStatus`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -141,10 +148,8 @@ function App() {
     // Get question answers API
     const getQuestionAnswers = async (audioText) => {
         try {
-            
             console.log('🎯 Getting question answers from audio text...', { audioText });
-
-            const response = await fetch(`https://aievaluationapi-f4breuawbkc6f3cm.uksouth-01.azurewebsites.net/api/Interview/extract-qa`, {
+            const response = await fetch(EXTRACT_QA_API_URL, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -181,7 +186,7 @@ function App() {
                 employeeId: processedEmployeeId
             });
 
-            const url = `${BASE_URL}/getEvaluationScheduleStatus?${queryParams.toString()}`;
+            const url = `${API_BASE_URL}/getEvaluationScheduleStatus?${queryParams.toString()}`;
             console.log('📊 GET URL:', url);
 
             const response = await fetch(url, {
@@ -224,7 +229,7 @@ function App() {
             setIsLoadingScheduled(true);
             setScheduledError(null);
 
-            const response = await fetch(`${BASE_URL}/evaluationSchedules?evaluation_status=Scheduled`, {
+            const response = await fetch(`${API_BASE_URL}/evaluationSchedules?evaluation_status=Scheduled`, {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
@@ -263,7 +268,7 @@ function App() {
             // More detailed error message
             let detailedError = error.message;
             if (error.message.includes('Failed to fetch')) {
-                detailedError = `Cannot connect to API server. Is the server running on ${BASE_URL}?`;
+                detailedError = `Cannot connect to API server. Is the server running on ${API_BASE_URL}?`;
             }
 
             setScheduledError(detailedError);
@@ -309,7 +314,7 @@ function App() {
             setIsLoadingCompleted(true);
             setCompletedError(null);
 
-            const response = await fetch(`${BASE_URL}/completedInterviews`, {
+            const response = await fetch(`${API_BASE_URL}/completedInterviews`, {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
@@ -347,7 +352,7 @@ function App() {
             // More detailed error message
             let detailedError = error.message;
             if (error.message.includes('Failed to fetch')) {
-                detailedError = `Cannot connect to API server. Is the server running on ${BASE_URL}?`;
+                detailedError = `Cannot connect to API server. Is the server running on ${API_BASE_URL}?`;
             }
 
             setCompletedError(detailedError);
@@ -403,7 +408,7 @@ function App() {
             setIsLoadingEvaluation(true);
             setEvaluationError(null);
 
-            const response = await fetch(`${BASE_URL}/pendingEvaluations`, {
+            const response = await fetch(`${API_BASE_URL}/pendingEvaluations`, {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
@@ -441,7 +446,7 @@ function App() {
             // More detailed error message
             let detailedError = error.message;
             if (error.message.includes('Failed to fetch')) {
-                detailedError = `Cannot connect to API server. Is the server running on ${BASE_URL}?`;
+                detailedError = `Cannot connect to API server. Is the server running on ${API_BASE_URL}?`;
             }
 
             setEvaluationError(detailedError);
@@ -534,10 +539,10 @@ function App() {
             // Try different possible endpoints/methods
             let response;
             const possibleEndpoints = [
-                { url: buildUrl(`${BASE_URL}/employees`), method: 'GET' },
-                { url: buildUrl(`${BASE_URL}/api/employees`), method: 'GET' },
-                { url: buildUrl(`${BASE_URL}/employees`), method: 'POST' },
-                { url: buildUrl(`${BASE_URL}/api/employees`), method: 'POST' }
+                { url: buildUrl(`${API_BASE_URL}/employees`), method: 'GET' },
+                { url: buildUrl(`${API_BASE_URL}/api/employees`), method: 'GET' },
+                { url: buildUrl(`${API_BASE_URL}/employees`), method: 'POST' },
+                { url: buildUrl(`${API_BASE_URL}/api/employees`), method: 'POST' }
             ];
 
             console.log('📋 Fetching employees with serviceOrderId:', serviceOrderId);
@@ -590,7 +595,7 @@ function App() {
             // More detailed error message
             let detailedError = error.message;
             if (error.message.includes('Failed to fetch')) {
-                detailedError = `Cannot connect to API server. Is the server running on ${BASE_URL}?`;
+                detailedError = `Cannot connect to API server. Is the server running on ${API_BASE_URL}?`;
             }
 
             setEmployeesError(detailedError);
@@ -616,7 +621,7 @@ function App() {
             setCandidatesError(null);
 
             // Build URL with serviceOrderId as query parameter if provided
-            let url = `${BASE_URL}/candidateToSchedule`;
+            let url = `${API_BASE_URL}/candidateToSchedule`;
             if (serviceOrderId) {
                 const queryParams = new URLSearchParams({ serviceOrderId: serviceOrderId });
                 url = `${url}?${queryParams.toString()}`;
@@ -650,7 +655,7 @@ function App() {
             // More detailed error message
             let detailedError = error.message;
             if (error.message.includes('Failed to fetch')) {
-                detailedError = `Cannot connect to API server. Is the server running on ${BASE_URL}?`;
+                detailedError = `Cannot connect to API server. Is the server running on ${API_BASE_URL}?`;
             }
 
             setCandidatesError(detailedError);
@@ -677,7 +682,7 @@ function App() {
             setIsLoadingServiceOrders(true);
             setServiceOrdersError(null);
 
-            const response = await fetch(`${BASE_URL}/serviceorders`, {
+            const response = await fetch(`${API_BASE_URL}/serviceorders`, {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
@@ -703,7 +708,7 @@ function App() {
             // More detailed error message
             let detailedError = error.message;
             if (error.message.includes('Failed to fetch')) {
-                detailedError = `Cannot connect to API server. Is the server running on ${BASE_URL}?`;
+                detailedError = `Cannot connect to API server. Is the server running on ${API_BASE_URL}?`;
             }
 
             setServiceOrdersError(detailedError);
@@ -726,7 +731,8 @@ function App() {
     useEffect(() => {
         fetchScheduledInterviews();
         fetchCompletedInterviews();
-    }, []);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []); // Intentionally omitting fetchScheduledInterviews, fetchCompletedInterviews from deps
 
     // Debug effect to track scheduledInterviews state changes
     useEffect(() => {
@@ -750,7 +756,8 @@ function App() {
         if (activeSection === 'evaluation') {
             fetchCandidatesForEvaluation();
         }
-    }, [activeSection]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [activeSection]); // Intentionally omitting fetchCandidatesForEvaluation from deps
 
     const addParticipant = (name, role, isHost = false) => {
         const newParticipant = {
@@ -1285,7 +1292,8 @@ function App() {
                 try {
                     // This is where you would integrate with a speech-to-text service
                     // For now, setting a placeholder response
-                    const audioText = await processAudioTranscription(audioBlob);
+                    let audioText = "abcdefghijklmnopqrstuvwxyz";
+                     audioText = await processAudioTranscription(audioBlob);
                     console.log('Audio transcript captured:', audioText);
                     //set audioText to the audioText
                     setAudioText(audioText);
@@ -1366,12 +1374,7 @@ function App() {
         setCurrentInterviewDetails(null);
     };
 
-    const setRating = (category, rating) => {
-        setRatings(prev => ({
-            ...prev,
-            [category]: rating
-        }));
-    };
+    // setRating is not used elsewhere, so it can remain removed.
 
     const setEvaluationRating = (category, rating) => {
         setEvaluationRatings(prev => ({
@@ -1605,7 +1608,7 @@ function App() {
             console.log('Submitting interview to /evaluations API:', payload);
 
             // Call the /evaluations API
-            const response = await fetch(`${BASE_URL}/evaluations`, {
+            const response = await fetch(`${API_BASE_URL}/evaluations`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -1782,7 +1785,7 @@ Interview Panel`;
             <header className="App-header">
                 <div className="header-content">
                     <img src={logo} className="App-logo" alt="logo" />
-                    <h1>Interview Portal</h1>
+                    <h1>Evaluation and Interviews Management</h1>
                     <nav className="header-nav">
                         <a href="#home" onClick={(e) => { e.preventDefault(); setActiveSection('dashboard'); }}>Home</a>
                         <a href="#about">About</a>

@@ -104,7 +104,7 @@ namespace LoginApp.Controllers
 
             // Call external API to extract skills from resume text
             using var httpClient = new HttpClient();
-            var apiUrl = "https://skillapp-bjegbscuead7aea4.ukwest-01.azurewebsites.net/api/Interview/extract-skills-from-text";
+            var apiUrl = _configuration.GetValue<string>("ResumeSkillExtractionApiUrl");
 
             // Send the resume text as a raw JSON string (not as an object)
             var content = new StringContent(JsonConvert.SerializeObject(resumeText), Encoding.UTF8, "application/json");
