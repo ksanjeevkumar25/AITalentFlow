@@ -7,8 +7,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AIInterviewer.Core", "AIInt
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AIInterviewer.API", "AIInterviewer.API\AIInterviewer.API.csproj", "{7CD6CAEC-0116-8EB7-4F4B-EFBC2BFA87B5}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AIInterviewer.UI", "AIInterviewer.UI\AIInterviewer.UI.csproj", "{ED2FAC25-A8DD-42E0-8B58-8BD2F1E64A3F}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -43,18 +41,6 @@ Global
 		{7CD6CAEC-0116-8EB7-4F4B-EFBC2BFA87B5}.Release|x64.Build.0 = Release|Any CPU
 		{7CD6CAEC-0116-8EB7-4F4B-EFBC2BFA87B5}.Release|x86.ActiveCfg = Release|Any CPU
 		{7CD6CAEC-0116-8EB7-4F4B-EFBC2BFA87B5}.Release|x86.Build.0 = Release|Any CPU
-		{ED2FAC25-A8DD-42E0-8B58-8BD2F1E64A3F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{ED2FAC25-A8DD-42E0-8B58-8BD2F1E64A3F}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{ED2FAC25-A8DD-42E0-8B58-8BD2F1E64A3F}.Debug|x64.ActiveCfg = Debug|Any CPU
-		{ED2FAC25-A8DD-42E0-8B58-8BD2F1E64A3F}.Debug|x64.Build.0 = Debug|Any CPU
-		{ED2FAC25-A8DD-42E0-8B58-8BD2F1E64A3F}.Debug|x86.ActiveCfg = Debug|Any CPU
-		{ED2FAC25-A8DD-42E0-8B58-8BD2F1E64A3F}.Debug|x86.Build.0 = Debug|Any CPU
-		{ED2FAC25-A8DD-42E0-8B58-8BD2F1E64A3F}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{ED2FAC25-A8DD-42E0-8B58-8BD2F1E64A3F}.Release|Any CPU.Build.0 = Release|Any CPU
-		{ED2FAC25-A8DD-42E0-8B58-8BD2F1E64A3F}.Release|x64.ActiveCfg = Release|Any CPU
-		{ED2FAC25-A8DD-42E0-8B58-8BD2F1E64A3F}.Release|x64.Build.0 = Release|Any CPU
-		{ED2FAC25-A8DD-42E0-8B58-8BD2F1E64A3F}.Release|x86.ActiveCfg = Release|Any CPU
-		{ED2FAC25-A8DD-42E0-8B58-8BD2F1E64A3F}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
