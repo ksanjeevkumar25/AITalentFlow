@@ -1785,7 +1785,7 @@ Interview Panel`;
             <header className="App-header">
                 <div className="header-content">
                     <img src={logo} className="App-logo" alt="logo" />
-                    <h1>Interview Portal</h1>
+                    <h1>Evaluation and Interviews Management</h1>
                     <nav className="header-nav">
                         <a href="#home" onClick={(e) => { e.preventDefault(); setActiveSection('dashboard'); }}>Home</a>
                         <a href="#about">About</a>
