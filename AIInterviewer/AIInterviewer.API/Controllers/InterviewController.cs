@@ -3,6 +3,7 @@ using AIInterviewer.Core.Models;
 using Microsoft.AspNetCore.Mvc;
 using System.Threading.Tasks;
 using System.Collections.Generic;
+using System;
 
 namespace AIInterviewer.API.Controllers
 {
@@ -58,6 +59,39 @@ namespace AIInterviewer.API.Controllers
             {
                 // Log error as needed
                 return StatusCode(500, $"Error extracting Q&A pairs: {ex.Message}");
+            }
+        }
+
+        [HttpPost("extract-skills")]
+        public async Task<IActionResult> ExtractSkills([FromBody] int candidateId)
+        {
+            try
+            {
+                var skills = await _service.ExtractSkillsFromResumeAsync(candidateId);
+                return Ok(skills);
+            }
+            catch (Exception ex)
+            {
+                // Log error as needed
+                return StatusCode(500, $"Error extracting skills: {ex.Message}");
+            }
+        }
+
+        [HttpPost("extract-skills-from-text")]
+        public async Task<IActionResult> ExtractSkillsFromText([FromBody] string resumeText)
+        {
+            if (string.IsNullOrWhiteSpace(resumeText))
+                return BadRequest("Resume text is required.");
+
+            try
+            {
+                // Directly call the service method that extracts skills from text
+                var skills = await _service.ExtractSkillsFromResumeTextAsync(resumeText);
+                return Ok(skills);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Error extracting skills: {ex.Message}");
             }
         }
 

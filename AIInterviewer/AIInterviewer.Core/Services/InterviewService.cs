@@ -201,7 +201,7 @@ namespace AIInterviewer.Core.Services
                     PropertyNameCaseInsensitive = true
                 });
 
-                return qaList != null ? qaList  : new List<QaPair>();
+                return qaList != null ? qaList : new List<QaPair>();
             }
             catch (Exception ex)
             {
@@ -285,8 +285,152 @@ namespace AIInterviewer.Core.Services
             return new List<string> { "Problem Solving", "Algorithms", "System Design" };
         }
 
-        
+        public async Task<List<string>> ExtractSkillsFromResumeAsync(int candidateId)
+        {
+            // 1. Fetch resume text from DB (pseudo code, replace with your actual DB logic)
+            string resumeText = await FetchResumeTextFromDbAsync(candidateId);
+            if (string.IsNullOrWhiteSpace(resumeText))
+                throw new Exception("Resume not found for candidate.");
+
+            // 2. If resume is large, split into chunks (example: 4000 chars per chunk)
+            var skillSet = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            int chunkSize = 4000;
+            for (int i = 0; i < resumeText.Length; i += chunkSize)
+            {
+                string chunk = resumeText.Substring(i, Math.Min(chunkSize, resumeText.Length - i));
+                var chunkSkills = await ExtractSkillsFromTextAsync(chunk);
+                foreach (var skill in chunkSkills)
+                    skillSet.Add(skill);
+            }
+            return skillSet.ToList();
+        }
+
+        public async Task<List<string>> ExtractSkillsFromResumeTextAsync(string resumeText)
+        {
+            // 1. Fetch resume text from DB (pseudo code, replace with your actual DB logic)
+            //string resumeText = await FetchResumeTextFromDbAsync(candidateId);
+            //if (string.IsNullOrWhiteSpace(resumeText))
+            //    throw new Exception("Resume not found for candidate.");
+
+            // 2. If resume is large, split into chunks (example: 4000 chars per chunk)
+            var skillSet = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            int chunkSize = 4000;
+            for (int i = 0; i < resumeText.Length; i += chunkSize)
+            {
+                string chunk = resumeText.Substring(i, Math.Min(chunkSize, resumeText.Length - i));
+                var chunkSkills = await ExtractSkillsFromTextAsync(chunk);
+                foreach (var skill in chunkSkills)
+                    skillSet.Add(skill);
+            }
+            return skillSet.ToList();
+        }
+
+        // Helper: fetch resume from DB (replace with your actual DB code)
+        private async Task<string> FetchResumeTextFromDbAsync(int candidateId)
+        {
+            // TODO: Replace this with actual DB fetch logic when DB is ready.
+            // Example using Dapper or EF Core:
+            // return await _dbContext.Candidates.Where(c => c.Id == candidateId).Select(c => c.ResumeText).FirstOrDefaultAsync();
+
+            // For testing, return a sample resume text:
+            return @"
+John Doe
+Senior Software Engineer
+
+Summary:
+Experienced software engineer with expertise in .NET, C#, Azure, and cloud-native development. Strong background in REST APIs, microservices, and DevOps practices.
+
+Technical Skills:
+- Programming Languages: C#, JavaScript, Python,Java, SAP ABAP
+- Frameworks: .NET 6/7, ASP.NET Core, Entity Framework, React
+- Cloud: Microsoft Azure (App Services, Azure Functions, Cosmos DB), AWS (EC2, Lambda)
+- DevOps: Docker, Kubernetes, Azure DevOps, GitHub Actions
+- Databases: SQL Server, PostgreSQL, MongoDB
+- Other: REST APIs, Microservices, Unit Testing, Agile, Scrum
+
+Professional Experience:
+Software Engineer at TechCorp (2020–Present)
+- Designed and implemented scalable microservices using ASP.NET Core and Azure.
+- Automated CI/CD pipelines with Azure DevOps and Docker.
+- Led migration of legacy .NET Framework apps to .NET 6.
+
+Education:
+B.Tech in Computer Science, XYZ University
+";
+        }
+
+        // Helper: call LLM to extract skills from text
+        private async Task<List<string>> ExtractSkillsFromTextAsync(string resumeText)
+        {
+            var systemPrompt = "You are an expert technical recruiter. Extract all technical skills from the following resume text. Return a JSON array of skill names only, no extra text.";
+            var apiKey = _config["OpenAI:ApiKey"];
+            var client = _httpClientFactory.CreateClient();
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
+
+            var req = new
+            {
+                model = "gpt-4o",
+                messages = new[]
+                {
+                    new { role = "system", content = systemPrompt },
+                    new { role = "user", content = resumeText }
+                },
+                temperature = 0.0,
+                response_format = new { type = "json_object" }
+            };
+
+            var content = new StringContent(JsonSerializer.Serialize(req), System.Text.Encoding.UTF8, "application/json");
+            var resp = await client.PostAsync("https://api.openai.com/v1/chat/completions", content);
+            var json = await resp.Content.ReadAsStringAsync();
+
+            if (!resp.IsSuccessStatusCode)
+                throw new Exception($"OpenAI API error: {resp.StatusCode} - {json}");
+
+            using var doc = JsonDocument.Parse(json);
+            var choices = doc.RootElement.GetProperty("choices");
+            if (choices.GetArrayLength() == 0)
+                throw new Exception("No choices returned from OpenAI.");
+
+            var message = choices[0].GetProperty("message");
+            var contentStr = message.GetProperty("content").GetString();
+
+            // Clean up and parse the JSON array
+            contentStr = contentStr.Trim();
+            if (contentStr.StartsWith("```json"))
+                contentStr = contentStr.Replace("```json", "").Trim();
+            if (contentStr.EndsWith("```"))
+                contentStr = contentStr.Substring(0, contentStr.LastIndexOf("```")).Trim();
+
+            // Handle if the response is a JSON object with a property (e.g., { "skills": [...] })
+            if (contentStr.StartsWith("{"))
+            {
+                using var wrapperDoc = JsonDocument.Parse(contentStr);
+                if (wrapperDoc.RootElement.TryGetProperty("skills", out var skillsArray))
+                {
+                    return skillsArray.Deserialize<List<string>>(new JsonSerializerOptions
+                    {
+                        PropertyNameCaseInsensitive = true
+                    }) ?? new List<string>();
+                }
+                throw new Exception("Expected 'skills' property in response.");
+            }
+            // Handle if the response is a JSON array
+            if (contentStr.StartsWith("["))
+            {
+                return JsonSerializer.Deserialize<List<string>>(contentStr, new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                }) ?? new List<string>();
+            }
+
+            throw new Exception("OpenAI response is not a valid JSON array or object.");
+        }
+
+        //Task<List<string>> IInterviewService.ExtractSkillsFromTextAsync(string resumeText)
+        //{
+        //    return ExtractSkillsFromTextAsync(resumeText);
+        //}
     }
 
-   
+
 }
